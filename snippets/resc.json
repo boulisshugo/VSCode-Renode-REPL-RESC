@@ -1,0 +1,99 @@
+{
+  "Script skeleton": {
+    "prefix": "resc",
+    "body": [
+      ":name: ${1:MyBoard}",
+      ":description: ${2:Runs firmware on ${1:MyBoard}.}",
+      "",
+      "using sysbus",
+      "\\$name?=\"${1:MyBoard}\"",
+      "\\$bin?=@${3:firmware/app.elf}",
+      "",
+      "mach create \\$name",
+      "machine LoadPlatformDescription @${4:platforms/boards/board.repl}",
+      "",
+      "showAnalyzer ${5:sysbus.uart0}",
+      "",
+      "macro reset",
+      "\"\"\"",
+      "    sysbus LoadELF \\$bin",
+      "\"\"\"",
+      "",
+      "runMacro \\$reset",
+      "$0"
+    ],
+    "description": "Full Renode script skeleton"
+  },
+  "Create machine": {
+    "prefix": "mach",
+    "body": [
+      "mach create \"${1:mcu}\"",
+      "machine LoadPlatformDescription @${2:platforms/cpus/stm32f4.repl}"
+    ],
+    "description": "Create a machine and load its platform"
+  },
+  "Load ELF": {
+    "prefix": "loadelf",
+    "body": "sysbus LoadELF @${1:firmware/app.elf}",
+    "description": "Load an ELF image (also sets the PC)"
+  },
+  "Load binary": {
+    "prefix": "loadbin",
+    "body": [
+      "sysbus LoadBinary @${1:firmware/app.bin} ${2:0x20000000}",
+      "cpu PC ${2:0x20000000}"
+    ],
+    "description": "Load a raw binary and set the program counter"
+  },
+  "Reset macro": {
+    "prefix": "macro",
+    "body": [
+      "macro ${1:reset}",
+      "\"\"\"",
+      "    ${2:sysbus LoadELF \\$bin}",
+      "\"\"\"",
+      "",
+      "runMacro \\$${1:reset}"
+    ],
+    "description": "Define and run a macro"
+  },
+  "UART socket terminal": {
+    "prefix": "uartsocket",
+    "body": [
+      "emulation CreateServerSocketTerminal ${1:3456} \"${2:term}\" false",
+      "connector Connect ${3:sysbus.uart0} ${2:term}"
+    ],
+    "description": "Expose a UART on a raw TCP socket (Telnet negotiation disabled)"
+  },
+  "UART PTY terminal": {
+    "prefix": "uartpty",
+    "body": [
+      "emulation CreateUartPtyTerminal \"${1:term}\" \"${2:/tmp/uart}\"",
+      "connector Connect ${3:sysbus.uart0} ${1:term}"
+    ],
+    "description": "Expose a UART on a host PTY"
+  },
+  "Show analyzer": {
+    "prefix": "analyzer",
+    "body": "showAnalyzer ${1:sysbus.uart0}",
+    "description": "Open a UART analyzer window"
+  },
+  "GDB server": {
+    "prefix": "gdb",
+    "body": "machine StartGdbServer ${1:3333}",
+    "description": "Expose a GDB stub"
+  },
+  "Verbose logging for one peripheral": {
+    "prefix": "loglevel",
+    "body": [
+      "logLevel ${1:-1} ${2:sysbus.uart0}",
+      "sysbus LogPeripheralAccess ${2:sysbus.uart0}"
+    ],
+    "description": "Scoped verbose logging and MMIO tracing"
+  },
+  "Include script": {
+    "prefix": "include",
+    "body": "include @${1:scripts/common.resc}",
+    "description": "Run another script inline"
+  }
+}

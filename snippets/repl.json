@@ -1,0 +1,89 @@
+{
+  "Peripheral": {
+    "prefix": "periph",
+    "body": [
+      "${1:name}: ${2:UART}.${3:PL011} @ sysbus ${4:0x40011000}",
+      "    -> ${5:nvic}@${6:5}"
+    ],
+    "description": "Peripheral registered on sysbus with an IRQ connection"
+  },
+  "Peripheral with address range": {
+    "prefix": "periphrange",
+    "body": [
+      "${1:name}: ${2:Namespace}.${3:Type} @ sysbus <${4:0x40013000}, +${5:0x1000}>",
+      "    $0"
+    ],
+    "description": "Peripheral registered with an explicit base address and size"
+  },
+  "Multi-registration": {
+    "prefix": "multireg",
+    "body": [
+      "${1:name}: ${2:SPI}.${3:Type} @ {",
+      "        sysbus ${4:0x40010000};",
+      "        ${5:bridge}",
+      "    }",
+      "    $0"
+    ],
+    "description": "Peripheral registered on several parents at once"
+  },
+  "Cortex-M CPU": {
+    "prefix": "cpum",
+    "body": [
+      "cpu: CPU.CortexM @ sysbus",
+      "    cpuType: \"${1:cortex-m4}\"",
+      "    nvic: ${2:nvic}"
+    ],
+    "description": "Cortex-M CPU entry"
+  },
+  "RISC-V CPU": {
+    "prefix": "cpuriscv",
+    "body": [
+      "cpu: CPU.RiscV32 @ sysbus",
+      "    cpuType: \"${1:rv32imac}\"",
+      "    timeProvider: ${2:clint}",
+      "    hartId: ${3:0}"
+    ],
+    "description": "RISC-V CPU entry"
+  },
+  "NVIC": {
+    "prefix": "nvic",
+    "body": [
+      "nvic: IRQControllers.NVIC @ sysbus 0xE000E000",
+      "    -> cpu@0",
+      "    systickFrequency: ${1:168000000}"
+    ],
+    "description": "Nested vectored interrupt controller"
+  },
+  "Mapped memory": {
+    "prefix": "mem",
+    "body": [
+      "${1:sram}: Memory.MappedMemory @ sysbus ${2:0x20000000}",
+      "    size: ${3:0x20000}"
+    ],
+    "description": "Mapped memory region"
+  },
+  "IRQ connection": {
+    "prefix": "irq",
+    "body": "    ${1:IRQ} -> ${2:nvic}@${3:5}",
+    "description": "Connect a named IRQ signal to a destination line"
+  },
+  "using": {
+    "prefix": "using",
+    "body": "using \"${1:platforms/cpus/stm32f4.repl}\"",
+    "description": "Include another platform description"
+  },
+  "using prefixed": {
+    "prefix": "usingprefixed",
+    "body": "using \"${1:platforms/cpus/stm32f4.repl}\" prefixed \"${2:cpu0_}\"",
+    "description": "Include another platform description with a name prefix"
+  },
+  "init block": {
+    "prefix": "init",
+    "body": [
+      "sysbus:",
+      "    init:",
+      "        ${1:Tag <0x40000000, 0x40000100> \"${2:NAME}\"}"
+    ],
+    "description": "sysbus init block"
+  }
+}

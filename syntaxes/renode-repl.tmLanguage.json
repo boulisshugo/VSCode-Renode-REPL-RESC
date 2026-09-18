@@ -1,0 +1,384 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Renode Platform Description",
+  "scopeName": "source.renode-repl",
+  "fileTypes": [
+    "repl"
+  ],
+  "patterns": [
+    {
+      "include": "#comment"
+    },
+    {
+      "include": "#using-directive"
+    },
+    {
+      "include": "#block-keyword"
+    },
+    {
+      "include": "#entry-declaration"
+    },
+    {
+      "include": "#irq-signal"
+    },
+    {
+      "include": "#property"
+    },
+    {
+      "include": "#expression"
+    }
+  ],
+  "repository": {
+    "comment": {
+      "name": "comment.line.double-slash.renode-repl",
+      "begin": "//",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.comment.renode-repl"
+        }
+      },
+      "end": "$"
+    },
+    "using-directive": {
+      "name": "meta.using.renode-repl",
+      "match": "^[ \\t]*(using)\\b(?:[ \\t]*(\"[^\"]*\"))?(?:[ \\t]+(prefixed|prefix)\\b[ \\t]*(\"[^\"]*\"))?",
+      "captures": {
+        "1": {
+          "name": "keyword.control.import.renode-repl"
+        },
+        "2": {
+          "name": "string.quoted.double.renode-repl"
+        },
+        "3": {
+          "name": "keyword.control.import.renode-repl"
+        },
+        "4": {
+          "name": "string.quoted.double.renode-repl"
+        }
+      }
+    },
+    "block-keyword": {
+      "name": "meta.block-header.renode-repl",
+      "match": "^[ \\t]+(init|reset)(?:[ \\t]+(add))?[ \\t]*(:)",
+      "captures": {
+        "1": {
+          "name": "keyword.control.block.renode-repl"
+        },
+        "2": {
+          "name": "keyword.other.modifier.renode-repl"
+        },
+        "3": {
+          "name": "punctuation.separator.key-value.renode-repl"
+        }
+      }
+    },
+    "entry-declaration": {
+      "name": "meta.entry.renode-repl",
+      "match": "^(?![ \\t])([A-Za-z_][A-Za-z0-9_]*)[ \\t]*(:)(?:[ \\t]+((?:[A-Za-z_][A-Za-z0-9_]*\\.)*)([A-Za-z_][A-Za-z0-9_]*)(?![A-Za-z0-9_.]))?",
+      "captures": {
+        "1": {
+          "name": "entity.name.type.peripheral.renode-repl"
+        },
+        "2": {
+          "name": "punctuation.separator.key-value.renode-repl"
+        },
+        "3": {
+          "name": "support.class.renode-repl"
+        },
+        "4": {
+          "name": "entity.name.class.renode-repl"
+        }
+      }
+    },
+    "irq-signal": {
+      "match": "^[ \\t]+([A-Za-z_][A-Za-z0-9_]*)(?=[ \\t]*(?:\\[[^\\]]*\\])?[ \\t]*->)",
+      "captures": {
+        "1": {
+          "name": "entity.name.function.irq.renode-repl"
+        }
+      }
+    },
+    "property": {
+      "match": "^[ \\t]+([A-Za-z_][A-Za-z0-9_]*)[ \\t]*(:)(?!:)",
+      "captures": {
+        "1": {
+          "name": "variable.other.property.renode-repl"
+        },
+        "2": {
+          "name": "punctuation.separator.key-value.renode-repl"
+        }
+      }
+    },
+    "expression": {
+      "patterns": [
+        {
+          "include": "#comment"
+        },
+        {
+          "include": "#string"
+        },
+        {
+          "include": "#path"
+        },
+        {
+          "include": "#irq-operator"
+        },
+        {
+          "include": "#irq-destination"
+        },
+        {
+          "include": "#range"
+        },
+        {
+          "include": "#braces"
+        },
+        {
+          "include": "#brackets"
+        },
+        {
+          "include": "#new-object"
+        },
+        {
+          "include": "#constant"
+        },
+        {
+          "include": "#number"
+        },
+        {
+          "include": "#registration-operator"
+        },
+        {
+          "include": "#enum-value"
+        },
+        {
+          "include": "#sysbus"
+        },
+        {
+          "include": "#identifier"
+        },
+        {
+          "include": "#punctuation"
+        }
+      ]
+    },
+    "string": {
+      "name": "string.quoted.double.renode-repl",
+      "begin": "\"",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.begin.renode-repl"
+        }
+      },
+      "end": "\"",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.end.renode-repl"
+        }
+      },
+      "patterns": [
+        {
+          "name": "constant.character.escape.renode-repl",
+          "match": "\\\\."
+        }
+      ]
+    },
+    "path": {
+      "name": "meta.path.renode-repl",
+      "match": "(@)([^\\s;,)\\}\\]]*[./][^\\s;,)\\}\\]]*)",
+      "captures": {
+        "1": {
+          "name": "punctuation.definition.path.renode-repl"
+        },
+        "2": {
+          "name": "string.unquoted.path.renode-repl"
+        }
+      }
+    },
+    "irq-operator": {
+      "name": "keyword.operator.irq.renode-repl",
+      "match": "->|<-"
+    },
+    "irq-destination": {
+      "match": "([A-Za-z_][A-Za-z0-9_]*(?:\\.[A-Za-z_][A-Za-z0-9_]*)*)[ \\t]*(@)[ \\t]*(\\d+|\\[[^\\]]*\\])",
+      "captures": {
+        "1": {
+          "name": "variable.other.peripheral.renode-repl"
+        },
+        "2": {
+          "name": "keyword.operator.irq-index.renode-repl"
+        },
+        "3": {
+          "name": "constant.numeric.irq.renode-repl"
+        }
+      }
+    },
+    "range": {
+      "name": "meta.range.renode-repl",
+      "begin": "<",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.range.begin.renode-repl"
+        }
+      },
+      "end": ">",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.range.end.renode-repl"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#number"
+        },
+        {
+          "name": "keyword.operator.arithmetic.renode-repl",
+          "match": "\\+"
+        },
+        {
+          "name": "punctuation.separator.renode-repl",
+          "match": ","
+        }
+      ]
+    },
+    "braces": {
+      "name": "meta.block.renode-repl",
+      "begin": "\\{",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.section.block.begin.renode-repl"
+        }
+      },
+      "end": "\\}",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.block.end.renode-repl"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#comment"
+        },
+        {
+          "include": "#inline-property"
+        },
+        {
+          "include": "#expression"
+        }
+      ]
+    },
+    "inline-property": {
+      "match": "([A-Za-z_][A-Za-z0-9_]*)[ \\t]*(:)(?!:)",
+      "captures": {
+        "1": {
+          "name": "variable.other.property.renode-repl"
+        },
+        "2": {
+          "name": "punctuation.separator.key-value.renode-repl"
+        }
+      }
+    },
+    "brackets": {
+      "name": "meta.brackets.renode-repl",
+      "begin": "\\[",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.section.brackets.begin.renode-repl"
+        }
+      },
+      "end": "\\]",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.brackets.end.renode-repl"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#number"
+        },
+        {
+          "name": "keyword.operator.range.renode-repl",
+          "match": "-"
+        },
+        {
+          "name": "punctuation.separator.renode-repl",
+          "match": ","
+        },
+        {
+          "include": "#identifier"
+        }
+      ]
+    },
+    "new-object": {
+      "match": "\\b(new)[ \\t]+((?:[A-Za-z_][A-Za-z0-9_]*\\.)*)([A-Za-z_][A-Za-z0-9_]*)",
+      "captures": {
+        "1": {
+          "name": "keyword.operator.new.renode-repl"
+        },
+        "2": {
+          "name": "support.class.renode-repl"
+        },
+        "3": {
+          "name": "entity.name.class.renode-repl"
+        }
+      }
+    },
+    "constant": {
+      "name": "constant.language.renode-repl",
+      "match": "\\b(true|false|none|empty|null)\\b"
+    },
+    "number": {
+      "patterns": [
+        {
+          "name": "constant.numeric.hex.renode-repl",
+          "match": "(?<![A-Za-z0-9_.])0[xX][0-9a-fA-F]+\\b"
+        },
+        {
+          "name": "constant.numeric.binary.renode-repl",
+          "match": "(?<![A-Za-z0-9_.])0[bB][01]+\\b"
+        },
+        {
+          "name": "constant.numeric.decimal.renode-repl",
+          "match": "(?<![A-Za-z0-9_.])-?\\d+(?:\\.\\d+)?\\b"
+        }
+      ]
+    },
+    "registration-operator": {
+      "name": "keyword.operator.registration.renode-repl",
+      "match": "@"
+    },
+    "enum-value": {
+      "match": "\\b([A-Z][A-Za-z0-9_]*)(\\.)([A-Z][A-Za-z0-9_]*)\\b",
+      "captures": {
+        "1": {
+          "name": "support.class.renode-repl"
+        },
+        "2": {
+          "name": "punctuation.accessor.renode-repl"
+        },
+        "3": {
+          "name": "constant.other.enum.renode-repl"
+        }
+      }
+    },
+    "sysbus": {
+      "name": "variable.language.sysbus.renode-repl",
+      "match": "\\bsysbus\\b"
+    },
+    "identifier": {
+      "name": "variable.other.renode-repl",
+      "match": "\\b[A-Za-z_][A-Za-z0-9_]*(?:\\.[A-Za-z_][A-Za-z0-9_]*)*\\b"
+    },
+    "punctuation": {
+      "patterns": [
+        {
+          "name": "punctuation.terminator.renode-repl",
+          "match": ";"
+        },
+        {
+          "name": "punctuation.separator.renode-repl",
+          "match": ","
+        }
+      ]
+    }
+  }
+}

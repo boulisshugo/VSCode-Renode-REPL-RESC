@@ -1,0 +1,36 @@
+:name: Demo board
+:description: Sample script exercising the highlighting rules.
+
+# Variables: ?= only assigns when unset, so callers can override.
+$name?="demo"
+$bin?=@firmware/app.elf
+$repl?=@$ORIGIN/platform.repl
+
+using sysbus
+
+mach create $name
+machine LoadPlatformDescription $repl
+
+sysbus LoadELF $bin
+cpu PC 0x08000000
+
+# Host-facing UART: pass false to disable Telnet negotiation.
+emulation CreateServerSocketTerminal 3456 "term" false
+connector Connect sysbus.uart0 term
+showAnalyzer sysbus.usart2
+
+logLevel -1 sysbus.spi
+sysbus LogPeripheralAccess sysbus.spi
+logFile @/tmp/renode.log
+
+machine StartGdbServer 3333
+emulation SetGlobalQuantum "0.000100"
+
+macro reset
+"""
+    sysbus LoadELF $bin
+    cpu PC 0x08000000
+"""
+
+runMacro $reset
+start

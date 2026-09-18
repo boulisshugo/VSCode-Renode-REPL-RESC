@@ -1,0 +1,87 @@
+{
+  "name": "renode-repl-resc",
+  "displayName": "Renode .repl / .resc",
+  "description": "Syntax highlighting, bracket matching and snippets for Renode platform descriptions (.repl) and Renode Monitor scripts (.resc).",
+  "version": "0.1.0",
+  "publisher": "boulisshugo",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets"
+  ],
+  "keywords": [
+    "renode",
+    "repl",
+    "resc",
+    "antmicro",
+    "embedded",
+    "simulation",
+    "firmware"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/boulisshugo/vs-code-renode-resc-repl-extension.git"
+  },
+  "bugs": {
+    "url": "https://github.com/boulisshugo/vs-code-renode-resc-repl-extension/issues"
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "renode-repl",
+        "aliases": [
+          "Renode Platform Description",
+          "renode-repl"
+        ],
+        "extensions": [
+          ".repl"
+        ],
+        "configuration": "./language-configuration/repl.json"
+      },
+      {
+        "id": "renode-resc",
+        "aliases": [
+          "Renode Script",
+          "renode-resc"
+        ],
+        "extensions": [
+          ".resc"
+        ],
+        "configuration": "./language-configuration/resc.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "renode-repl",
+        "scopeName": "source.renode-repl",
+        "path": "./syntaxes/renode-repl.tmLanguage.json"
+      },
+      {
+        "language": "renode-resc",
+        "scopeName": "source.renode-resc",
+        "path": "./syntaxes/renode-resc.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "renode-repl",
+        "path": "./snippets/repl.json"
+      },
+      {
+        "language": "renode-resc",
+        "path": "./snippets/resc.json"
+      }
+    ]
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "vscode-oniguruma": "^2.0.1",
+    "vscode-textmate": "^9.1.0"
+  }
+}

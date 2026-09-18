@@ -1,0 +1,316 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Renode Script",
+  "scopeName": "source.renode-resc",
+  "fileTypes": [
+    "resc"
+  ],
+  "patterns": [
+    {
+      "include": "#metadata"
+    },
+    {
+      "include": "#comment"
+    },
+    {
+      "include": "#python-block"
+    },
+    {
+      "include": "#macro-definition"
+    },
+    {
+      "include": "#triple-quoted-block"
+    },
+    {
+      "include": "#statement"
+    }
+  ],
+  "repository": {
+    "metadata": {
+      "name": "meta.metadata.renode-resc",
+      "match": "^[ \\t]*(:[A-Za-z][A-Za-z0-9_-]*:)[ \\t]*(.*)$",
+      "captures": {
+        "1": {
+          "name": "keyword.other.directive.renode-resc"
+        },
+        "2": {
+          "name": "string.unquoted.metadata.renode-resc"
+        }
+      }
+    },
+    "comment": {
+      "name": "comment.line.number-sign.renode-resc",
+      "begin": "#",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.comment.renode-resc"
+        }
+      },
+      "end": "$"
+    },
+    "python-block": {
+      "name": "meta.embedded.python.renode-resc",
+      "begin": "\\b(python)[ \\t]+(\"\"\")",
+      "beginCaptures": {
+        "1": {
+          "name": "keyword.control.python.renode-resc"
+        },
+        "2": {
+          "name": "punctuation.definition.string.begin.renode-resc"
+        }
+      },
+      "end": "\"\"\"",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.end.renode-resc"
+        }
+      },
+      "contentName": "meta.embedded.block.python",
+      "patterns": [
+        {
+          "include": "source.python"
+        }
+      ]
+    },
+    "macro-definition": {
+      "name": "meta.macro.renode-resc",
+      "match": "^[ \\t]*(macro)[ \\t]+([A-Za-z_][A-Za-z0-9_]*)",
+      "captures": {
+        "1": {
+          "name": "keyword.control.macro.renode-resc"
+        },
+        "2": {
+          "name": "entity.name.function.macro.renode-resc"
+        }
+      }
+    },
+    "triple-quoted-block": {
+      "name": "meta.block.multiline.renode-resc",
+      "begin": "\"\"\"",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.begin.renode-resc"
+        }
+      },
+      "end": "\"\"\"",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.end.renode-resc"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#statement"
+        }
+      ]
+    },
+    "statement": {
+      "patterns": [
+        {
+          "include": "#comment"
+        },
+        {
+          "include": "#string"
+        },
+        {
+          "include": "#path"
+        },
+        {
+          "include": "#special-variable"
+        },
+        {
+          "include": "#variable"
+        },
+        {
+          "include": "#short-command"
+        },
+        {
+          "include": "#keyword"
+        },
+        {
+          "include": "#builtin-command"
+        },
+        {
+          "include": "#object-method"
+        },
+        {
+          "include": "#peripheral-path"
+        },
+        {
+          "include": "#builtin-object"
+        },
+        {
+          "include": "#constant"
+        },
+        {
+          "include": "#number"
+        },
+        {
+          "include": "#operator"
+        },
+        {
+          "include": "#method"
+        },
+        {
+          "include": "#punctuation"
+        },
+        {
+          "include": "#identifier"
+        }
+      ]
+    },
+    "string": {
+      "name": "string.quoted.double.renode-resc",
+      "begin": "\"",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.begin.renode-resc"
+        }
+      },
+      "end": "\"",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.end.renode-resc"
+        }
+      },
+      "patterns": [
+        {
+          "name": "constant.character.escape.renode-resc",
+          "match": "\\\\."
+        },
+        {
+          "include": "#special-variable"
+        },
+        {
+          "include": "#variable"
+        }
+      ]
+    },
+    "path": {
+      "name": "string.unquoted.path.renode-resc",
+      "begin": "(@)(?=\\S)",
+      "beginCaptures": {
+        "1": {
+          "name": "punctuation.definition.path.renode-resc"
+        }
+      },
+      "end": "(?=[\\s;\"]|$)",
+      "patterns": [
+        {
+          "include": "#special-variable"
+        },
+        {
+          "include": "#variable"
+        }
+      ]
+    },
+    "special-variable": {
+      "match": "(\\$)(ORIGIN|CWD)\\b",
+      "captures": {
+        "1": {
+          "name": "punctuation.definition.variable.renode-resc"
+        },
+        "2": {
+          "name": "variable.language.renode-resc"
+        }
+      }
+    },
+    "variable": {
+      "match": "(\\$)([A-Za-z_][A-Za-z0-9_]*)",
+      "captures": {
+        "1": {
+          "name": "punctuation.definition.variable.renode-resc"
+        },
+        "2": {
+          "name": "variable.other.renode-resc"
+        }
+      }
+    },
+    "short-command": {
+      "match": "^[ \\t]*(s|p|q|i|h|e)(?=[ \\t]|$)",
+      "captures": {
+        "1": {
+          "name": "keyword.control.renode-resc"
+        }
+      }
+    },
+    "keyword": {
+      "name": "keyword.control.renode-resc",
+      "match": "\\b(start|pause|quit|reset|clear|include|using|macro|runMacro|require|next|sleep|execute|python)\\b"
+    },
+    "builtin-command": {
+      "name": "support.function.builtin.renode-resc",
+      "match": "\\b(showAnalyzer|hideAnalyzer|logLevel|logFile|log|peripherals|numbersMode|verboseMode|allowPrivates|analyzers|help|about|version|path|set|unset|string|lastLog|resd|EnsureTypeIsLoaded)\\b"
+    },
+    "peripheral-path": {
+      "match": "\\b(sysbus|machine|mach|emulation|connector|cpu|host|monitor|plugins)((?:\\.[A-Za-z_][A-Za-z0-9_]*)+)",
+      "captures": {
+        "1": {
+          "name": "support.class.builtin.renode-resc"
+        },
+        "2": {
+          "name": "variable.other.member.renode-resc"
+        }
+      }
+    },
+    "builtin-object": {
+      "name": "support.class.builtin.renode-resc",
+      "match": "\\b(sysbus|machine|mach|emulation|connector|cpu|host|monitor|plugins)\\b"
+    },
+    "constant": {
+      "name": "constant.language.renode-resc",
+      "match": "\\b(true|false|null|None)\\b"
+    },
+    "number": {
+      "patterns": [
+        {
+          "name": "constant.numeric.hex.renode-resc",
+          "match": "(?<![A-Za-z0-9_.])0[xX][0-9a-fA-F]+\\b"
+        },
+        {
+          "name": "constant.numeric.binary.renode-resc",
+          "match": "(?<![A-Za-z0-9_.])0[bB][01]+\\b"
+        },
+        {
+          "name": "constant.numeric.decimal.renode-resc",
+          "match": "(?<![A-Za-z0-9_.])-?\\d+(?:\\.\\d+)?\\b"
+        }
+      ]
+    },
+    "operator": {
+      "patterns": [
+        {
+          "name": "keyword.operator.assignment.renode-resc",
+          "match": "\\?=|="
+        }
+      ]
+    },
+    "method": {
+      "name": "support.function.renode-resc",
+      "match": "\\b[A-Z][A-Za-z0-9_]*\\b"
+    },
+    "punctuation": {
+      "patterns": [
+        {
+          "name": "punctuation.terminator.renode-resc",
+          "match": ";"
+        }
+      ]
+    },
+    "object-method": {
+      "match": "\\b(mach|machine|emulation|connector|sysbus|cpu|host|monitor|plugins)[ \\t]+([a-z][A-Za-z0-9_]*)\\b",
+      "captures": {
+        "1": {
+          "name": "support.class.builtin.renode-resc"
+        },
+        "2": {
+          "name": "support.function.renode-resc"
+        }
+      }
+    },
+    "identifier": {
+      "name": "variable.other.renode-resc",
+      "match": "\\b[A-Za-z_][A-Za-z0-9_]*\\b"
+    }
+  }
+}
