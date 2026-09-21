@@ -9,3 +9,4 @@ package-lock.json
 images/preview.html
 images/.theme-cache/**
 *.vsix
+*.zip
