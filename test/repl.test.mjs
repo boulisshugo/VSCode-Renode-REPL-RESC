@@ -7,7 +7,7 @@ const tok = (src) => tokenize(grammar, src);
 
 test('peripheral declaration splits name, namespace and class', () => {
   const t = tok('uart0: UART.PL011 @ sysbus 0x40011000');
-  assert.ok(hasScope(t, 'uart0', 'entity.name.type.peripheral'));
+  assert.ok(hasScope(t, 'uart0', 'entity.name.function.peripheral'));
   assert.ok(hasScope(t, 'UART.', 'support.class'));
   assert.ok(hasScope(t, 'PL011', 'entity.name.class'));
   assert.ok(hasScope(t, '@', 'keyword.operator.registration'));
@@ -17,7 +17,7 @@ test('peripheral declaration splits name, namespace and class', () => {
 
 test('declaration without a type still highlights the entry name', () => {
   const t = tok('sysbus:');
-  assert.ok(hasScope(t, 'sysbus', 'entity.name.type.peripheral'));
+  assert.ok(hasScope(t, 'sysbus', 'entity.name.function.peripheral'));
 });
 
 test('indented lines are properties, not declarations', () => {
@@ -60,7 +60,7 @@ test('string, boolean and enum property values', () => {
   const t = tok('cpu: CPU.CortexM @ sysbus\n    cpuType: "cortex-m4"\n    enabled: true\n    mode: TransferMode.FullDuplex');
   assert.ok(hasScope(t, 'cortex-m4', 'string.quoted.double'));
   assert.ok(hasScope(t, 'true', 'constant.language'));
-  assert.ok(hasScope(t, 'FullDuplex', 'constant.other.enum'));
+  assert.ok(hasScope(t, 'FullDuplex', 'variable.other.enummember'));
 });
 
 test('using directive with and without a prefix', () => {
@@ -131,7 +131,7 @@ test('block comments span lines', () => {
   assert.ok(scopesOf(t, '* Clock tree notes: PLLN = 16').some((s) => s.startsWith('comment.block')));
   assert.ok(hasScope(t, '*/', 'punctuation.definition.comment.end'));
   // The comment must close so the following declaration still highlights.
-  assert.ok(hasScope(t, 'cpu', 'entity.name.type.peripheral'));
+  assert.ok(hasScope(t, 'cpu', 'entity.name.function.peripheral'));
 });
 
 test('connector index on an IRQ destination', () => {
@@ -161,7 +161,7 @@ test("python peripheral scripts use ''' and embed Python", () => {
   assert.ok(hasScope(t, "'''", 'punctuation.definition.string.begin'));
   assert.ok(scopesOf(t, 'request.Value = 0x1').some((s) => s.startsWith('meta.embedded.block.python')));
   // The block must close so the next declaration is still a declaration.
-  assert.ok(hasScope(t, 'next', 'entity.name.type.peripheral'));
+  assert.ok(hasScope(t, 'next', 'entity.name.function.peripheral'));
 });
 
 test('single-line python script', () => {
@@ -176,8 +176,8 @@ test('digit separators in numbers', () => {
 
 test('identifiers containing digits and underscores are not numbers', () => {
   const t = tok('U74_2: CPU.RiscV64 @ sysbus\n    privilegedArchitecture: PrivilegedArchitecture.Priv1_10');
-  assert.ok(hasScope(t, 'U74_2', 'entity.name.type.peripheral'));
-  assert.ok(hasScope(t, 'Priv1_10', 'constant.other.enum'));
+  assert.ok(hasScope(t, 'U74_2', 'entity.name.function.peripheral'));
+  assert.ok(hasScope(t, 'Priv1_10', 'variable.other.enummember'));
 });
 
 test('backtick Monitor expressions inside a reset block', () => {
@@ -189,12 +189,12 @@ test('backtick Monitor expressions inside a reset block', () => {
 
 test('enum value with the type omitted', () => {
   const t = tok('gic: IRQControllers.GIC @ sysbus 0x0\n    architectureVersion: .GICv3');
-  assert.ok(hasScope(t, 'GICv3', 'constant.other.enum'));
+  assert.ok(hasScope(t, 'GICv3', 'variable.other.enummember'));
 });
 
 test('multi-segment enum values', () => {
   const t = tok('g: A.B @ sysbus 0x0\n    v: IRQControllers.ARM_GenericInterruptControllerVersion.GICv3');
-  assert.ok(hasScope(t, 'GICv3', 'constant.other.enum'));
+  assert.ok(hasScope(t, 'GICv3', 'variable.other.enummember'));
 });
 
 test('nested lists', () => {

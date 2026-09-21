@@ -145,7 +145,7 @@ test('inline platform fragments are highlighted as .repl', () => {
 
 test('inline platform fragments in double quotes', () => {
   const t = tok('machine LoadPlatformDescriptionFromString "bg96: Network.Quectel_BG96 @ usart2"');
-  assert.ok(anyHasScope(t, 'bg96', 'entity.name.type.peripheral.renode-repl'));
+  assert.ok(anyHasScope(t, 'bg96', 'entity.name.function.peripheral.renode-repl'));
   assert.ok(anyHasScope(t, 'Quectel_BG96', 'entity.name.class.renode-repl'));
 });
 
@@ -153,7 +153,7 @@ test('multi-line inline platform fragments close correctly', () => {
   const t = tok(
     'machine LoadPlatformDescriptionFromString """\nextra: GPIOPort.Gpio @ sysbus 0x50000000\n    -> nvic@42\n"""\nstart'
   );
-  assert.ok(anyHasScope(t, 'extra', 'entity.name.type.peripheral.renode-repl'));
+  assert.ok(anyHasScope(t, 'extra', 'entity.name.function.peripheral.renode-repl'));
   assert.ok(anyHasScope(t, '42', 'constant.numeric.irq.renode-repl'));
   assert.ok(hasScope(t, 'start', 'keyword.control'));
 });

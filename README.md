@@ -6,6 +6,8 @@ Syntax highlighting, bracket matching, folding and snippets for
 * **`.repl`** — platform descriptions (peripherals, registration points, IRQ wiring)
 * **`.resc`** — Renode Monitor scripts
 
+![Renode .repl and .resc syntax highlighting in VS Code](images/preview.png)
+
 The extension is purely declarative: two TextMate grammars, two language
 configurations and two snippet sets. There is no activation code, no language
 server and no dependency on a local Renode install.
@@ -166,6 +168,18 @@ The same scan works on your own files — point it at a directory of in-house
 platform descriptions and scripts to find anything this extension does not yet
 cover, then open an issue with the report.
 
+## Regenerating the preview image
+
+`images/preview.png` is generated from `samples/preview.repl` and
+`samples/preview.resc`, tokenized with this extension's grammars and coloured
+with the real VS Code Dark+ theme through `vscode-textmate`'s own theme
+matcher, so it cannot drift from what the editor shows:
+
+```bash
+npm run preview                    # writes images/preview.html
+npm run preview -- --png images/preview.png   # also writes the PNG (needs Playwright)
+```
+
 ## Theming notes
 
 The grammars use standard TextMate scope names (`entity.name.class`,
@@ -177,7 +191,7 @@ scope, add to your `settings.json`:
 "editor.tokenColorCustomizations": {
   "textMateRules": [
     {
-      "scope": "entity.name.type.peripheral.renode-repl",
+      "scope": "entity.name.function.peripheral.renode-repl",
       "settings": { "foreground": "#4EC9B0", "fontStyle": "bold" }
     }
   ]

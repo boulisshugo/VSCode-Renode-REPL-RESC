@@ -5,4 +5,6 @@ node_modules/**
 test/**
 tools/**
 package-lock.json
+images/preview.html
+images/.theme-cache/**
 *.vsix

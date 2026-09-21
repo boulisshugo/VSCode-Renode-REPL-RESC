@@ -1,0 +1,28 @@
+:name: Preview board
+:description: Boots firmware and exposes the console on a socket.
+
+$bin ?= @$ORIGIN/build/firmware.elf
+
+mach create "preview"
+machine LoadPlatformDescription @preview.repl
+machine LoadPlatformDescriptionFromString 'led: Misc.LED @ gpio 3'
+
+sysbus LoadELF $bin
+sysbus.cpu PC 0x08000000
+
+// Monitor commands take ranges and backtick expressions.
+sysbus Tag <0x40040000 0x1000> "RESERVED"
+$entry = `sysbus GetSymbolAddress "Reset_Handler"`
+
+emulation CreateServerSocketTerminal 3456 "term" false
+connector Connect sysbus.uart0 term
+logLevel -1 sysbus.spi0
+
+macro reset
+"""
+    sysbus LoadELF $bin
+    sysbus.cpu SP 0x20040000
+"""
+
+runMacro $reset
+start
