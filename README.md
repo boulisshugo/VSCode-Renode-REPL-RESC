@@ -121,7 +121,7 @@ JetBrains IDEs read VS Code-style TextMate bundles through the bundled
 plugin, and no second copy of the syntax rules to keep in sync.
 
 1. Download `renode-textmate-bundle-<version>.zip` from the
-   [releases](https://github.com/boulisshugo/vs-code-renode-resc-repl-extension/releases)
+   [releases](https://github.com/boulisshugo/VSCode-Renode-REPL-RESC/releases)
    and unzip it (or run `npm run bundle`, which writes
    `dist/renode-textmate-bundle/`).
 2. **Settings / Preferences → Editor → TextMate Bundles**

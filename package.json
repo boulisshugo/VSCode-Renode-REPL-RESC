@@ -23,10 +23,10 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/boulisshugo/vs-code-renode-resc-repl-extension.git"
+    "url": "https://github.com/boulisshugo/VSCode-Renode-REPL-RESC.git"
   },
   "bugs": {
-    "url": "https://github.com/boulisshugo/vs-code-renode-resc-repl-extension/issues"
+    "url": "https://github.com/boulisshugo/VSCode-Renode-REPL-RESC/issues"
   },
   "contributes": {
     "languages": [

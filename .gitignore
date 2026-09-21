@@ -1,5 +1,6 @@
 node_modules/
 *.vsix
+*.zip
 .vscode-test/
 images/preview.html
 images/.theme-cache/
