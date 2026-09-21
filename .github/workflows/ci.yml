@@ -21,3 +21,21 @@ jobs:
         with:
           name: vsix
           path: renode-repl-resc.vsix
+
+  corpus:
+    # Tokenize every .repl/.resc file upstream in renode/renode and fail if the
+    # grammars leave any token unclassified.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - name: Fetch Renode platform and script files
+        run: |
+          git clone --depth 1 --filter=blob:none --sparse \
+            https://github.com/renode/renode "$RUNNER_TEMP/renode"
+          git -C "$RUNNER_TEMP/renode" sparse-checkout set platforms scripts
+      - run: npm run corpus -- "$RUNNER_TEMP/renode"

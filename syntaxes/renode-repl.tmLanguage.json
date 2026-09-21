@@ -7,6 +7,9 @@
   ],
   "patterns": [
     {
+      "include": "#block-comment"
+    },
+    {
       "include": "#comment"
     },
     {
@@ -74,7 +77,7 @@
     },
     "entry-declaration": {
       "name": "meta.entry.renode-repl",
-      "match": "^(?![ \\t])([A-Za-z_][A-Za-z0-9_]*)[ \\t]*(:)(?:[ \\t]+((?:[A-Za-z_][A-Za-z0-9_]*\\.)*)([A-Za-z_][A-Za-z0-9_]*)(?![A-Za-z0-9_.]))?",
+      "match": "(?:^|(?<=[\"']))(?![ \\t])([A-Za-z_][A-Za-z0-9_]*)[ \\t]*(:)(?:[ \\t]+((?:[A-Za-z_][A-Za-z0-9_]*\\.)*)([A-Za-z_][A-Za-z0-9_]*)(?![A-Za-z0-9_.]))?",
       "captures": {
         "1": {
           "name": "entity.name.type.peripheral.renode-repl"
@@ -91,7 +94,7 @@
       }
     },
     "irq-signal": {
-      "match": "^[ \\t]+([A-Za-z_][A-Za-z0-9_]*)(?=[ \\t]*(?:\\[[^\\]]*\\])?[ \\t]*->)",
+      "match": "^[ \\t]+([A-Za-z_][A-Za-z0-9_]*)(?=[ \\t]*(?:\\[[^\\]]*\\])?[ \\t]*(?:->|<-))",
       "captures": {
         "1": {
           "name": "entity.name.function.irq.renode-repl"
@@ -112,7 +115,16 @@
     "expression": {
       "patterns": [
         {
+          "include": "#block-comment"
+        },
+        {
           "include": "#comment"
+        },
+        {
+          "include": "#python-script"
+        },
+        {
+          "include": "#monitor-expression"
         },
         {
           "include": "#string"
@@ -121,10 +133,16 @@
           "include": "#path"
         },
         {
+          "include": "#irq-separator"
+        },
+        {
           "include": "#irq-operator"
         },
         {
           "include": "#irq-destination"
+        },
+        {
+          "include": "#hash-comment"
         },
         {
           "include": "#range"
@@ -148,7 +166,19 @@
           "include": "#registration-operator"
         },
         {
+          "include": "#assignment"
+        },
+        {
           "include": "#enum-value"
+        },
+        {
+          "include": "#enum-shorthand"
+        },
+        {
+          "include": "#inline-property"
+        },
+        {
+          "include": "#register"
         },
         {
           "include": "#sysbus"
@@ -158,6 +188,53 @@
         },
         {
           "include": "#punctuation"
+        }
+      ]
+    },
+    "python-script": {
+      "name": "string.quoted.triple.renode-repl",
+      "begin": "'''",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.begin.renode-repl"
+        }
+      },
+      "end": "'''",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.end.renode-repl"
+        }
+      },
+      "contentName": "meta.embedded.block.python",
+      "patterns": [
+        {
+          "include": "source.python"
+        }
+      ]
+    },
+    "monitor-expression": {
+      "name": "string.interpolated.monitor.renode-repl",
+      "begin": "`",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.expression.begin.renode-repl"
+        }
+      },
+      "end": "`",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.expression.end.renode-repl"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#string"
+        },
+        {
+          "include": "#number"
+        },
+        {
+          "include": "#identifier"
         }
       ]
     },
@@ -194,20 +271,30 @@
         }
       }
     },
+    "irq-separator": {
+      "name": "keyword.operator.irq-separator.renode-repl",
+      "match": "\\|"
+    },
     "irq-operator": {
       "name": "keyword.operator.irq.renode-repl",
       "match": "->|<-"
     },
     "irq-destination": {
-      "match": "([A-Za-z_][A-Za-z0-9_]*(?:\\.[A-Za-z_][A-Za-z0-9_]*)*)[ \\t]*(@)[ \\t]*(\\d+|\\[[^\\]]*\\])",
+      "match": "([A-Za-z_][A-Za-z0-9_]*(?:\\.[A-Za-z_][A-Za-z0-9_]*)*)(?:(#)(0[xX][0-9a-fA-F]+|[0-9]+))?[ \\t]*(@)[ \\t]*(0[xX][0-9a-fA-F]+|[0-9]+|\\[[^\\]]*\\])",
       "captures": {
         "1": {
           "name": "variable.other.peripheral.renode-repl"
         },
         "2": {
-          "name": "keyword.operator.irq-index.renode-repl"
+          "name": "keyword.operator.connector-index.renode-repl"
         },
         "3": {
+          "name": "constant.numeric.connector.renode-repl"
+        },
+        "4": {
+          "name": "keyword.operator.irq-index.renode-repl"
+        },
+        "5": {
           "name": "constant.numeric.irq.renode-repl"
         }
       }
@@ -293,6 +380,9 @@
       },
       "patterns": [
         {
+          "include": "#brackets"
+        },
+        {
           "include": "#number"
         },
         {
@@ -330,15 +420,15 @@
       "patterns": [
         {
           "name": "constant.numeric.hex.renode-repl",
-          "match": "(?<![A-Za-z0-9_.])0[xX][0-9a-fA-F]+\\b"
+          "match": "(?<![A-Za-z0-9_.])0[xX][0-9a-fA-F][0-9a-fA-F_]*\\b"
         },
         {
           "name": "constant.numeric.binary.renode-repl",
-          "match": "(?<![A-Za-z0-9_.])0[bB][01]+\\b"
+          "match": "(?<![A-Za-z0-9_.])0[bB][01][01_]*\\b"
         },
         {
           "name": "constant.numeric.decimal.renode-repl",
-          "match": "(?<![A-Za-z0-9_.])-?\\d+(?:\\.\\d+)?\\b"
+          "match": "(?<![A-Za-z0-9_.])-?[0-9][0-9_]*(?:\\.[0-9]+)?\\b"
         }
       ]
     },
@@ -347,22 +437,26 @@
       "match": "@"
     },
     "enum-value": {
-      "match": "\\b([A-Z][A-Za-z0-9_]*)(\\.)([A-Z][A-Za-z0-9_]*)\\b",
+      "match": "\\b((?:[A-Z][A-Za-z0-9_]*\\.)+)([A-Z][A-Za-z0-9_]*)\\b",
       "captures": {
         "1": {
           "name": "support.class.renode-repl"
         },
         "2": {
-          "name": "punctuation.accessor.renode-repl"
-        },
-        "3": {
           "name": "constant.other.enum.renode-repl"
         }
       }
     },
     "sysbus": {
-      "name": "variable.language.sysbus.renode-repl",
-      "match": "\\bsysbus\\b"
+      "match": "\\b(sysbus)((?:\\.[A-Za-z_][A-Za-z0-9_]*)*)\\b",
+      "captures": {
+        "1": {
+          "name": "variable.language.sysbus.renode-repl"
+        },
+        "2": {
+          "name": "variable.other.member.renode-repl"
+        }
+      }
     },
     "identifier": {
       "name": "variable.other.renode-repl",
@@ -379,6 +473,50 @@
           "match": ","
         }
       ]
+    },
+    "block-comment": {
+      "name": "comment.block.renode-repl",
+      "begin": "/\\*",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.comment.begin.renode-repl"
+        }
+      },
+      "end": "\\*/",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.comment.end.renode-repl"
+        }
+      }
+    },
+    "enum-shorthand": {
+      "match": "(?<![A-Za-z0-9_])(\\.)([A-Z][A-Za-z0-9_]*)\\b",
+      "captures": {
+        "1": {
+          "name": "punctuation.accessor.renode-repl"
+        },
+        "2": {
+          "name": "constant.other.enum.renode-repl"
+        }
+      }
+    },
+    "hash-comment": {
+      "name": "comment.line.number-sign.renode-repl",
+      "begin": "(?<![A-Za-z0-9_])#",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.comment.renode-repl"
+        }
+      },
+      "end": "$"
+    },
+    "assignment": {
+      "name": "keyword.operator.assignment.renode-repl",
+      "match": "="
+    },
+    "register": {
+      "name": "variable.language.register.renode-repl",
+      "match": "\\b(PC|SP|LR)\\b"
     }
   }
 }

@@ -1,5 +1,7 @@
 :name: Demo board
 :description: Sample script exercising the highlighting rules.
+:Description metadata continues on lines that start with a colon,
+:for example usart2<->usart3 passthrough between two machines.
 
 # Variables: ?= only assigns when unset, so callers can override.
 $name?="demo"
@@ -10,11 +12,35 @@ using sysbus
 
 mach create $name
 machine LoadPlatformDescription $repl
+machine LoadPlatformDescription "C:/work/target/board.repl"
+
+# Platform fragments can be given inline, in either quoting style.
+machine LoadPlatformDescriptionFromString "bg96: Network.Quectel_BG96 @ usart2"
+machine LoadPlatformDescriptionFromString 'dma: CoSimulated.CoSimulatedPeripheral @ sysbus <0x43c20000, +0x100> { frequency: 100000; 0 -> gic@31 }'
+machine LoadPlatformDescriptionFromString """
+extraGpio: GPIOPort.MappedGpio @ sysbus 0x50000000
+    numberOfPins: 8
+    -> nvic@42
+"""
 
 sysbus LoadELF $bin
-cpu PC 0x08000000
+sysbus LoadHEX @../lib/bootloader.hex
+sysbus.cpu PC 0x08000000
+sysbus.cpu SP 0x20020000
 
-# Host-facing UART: pass false to disable Telnet negotiation.
+// Renode also accepts '//' comments in scripts.
+sysbus Tag <0x40080000 0x400> "RADIO"
+sysbus WriteDoubleWord 0x40002C0C 0x80
+
+# Backticks evaluate a Monitor expression and substitute its result.
+$id = `next_value 1`
+cpu VectorTableOffset `sysbus GetSymbolAddress "vectors"`
+
+# Custom peripherals and their methods highlight like built-in ones.
+sysbus.chipEvents SetControllerPort 18000
+sysbus.chipEvents ResolvePort "Spi"
+twi0.lsm9ds1_imu FeedAccelerationSample $ORIGIN/../tests/circle_rotated.data
+
 emulation CreateServerSocketTerminal 3456 "term" false
 connector Connect sysbus.uart0 term
 showAnalyzer sysbus.usart2
@@ -25,11 +51,13 @@ logFile @/tmp/renode.log
 
 machine StartGdbServer 3333
 emulation SetGlobalQuantum "0.000100"
+emulation SetAdvanceImmediately true
 
 macro reset
 """
+    pause
     sysbus LoadELF $bin
-    cpu PC 0x08000000
+    sysbus.cpu PC 0x08000000
 """
 
 runMacro $reset

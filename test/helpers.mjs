@@ -96,5 +96,14 @@ export function hasScope(tokens, needle, scopePrefix) {
   return scopesOf(tokens, needle).some((s) => s.startsWith(scopePrefix));
 }
 
+/** True when SOME token with this text carries a scope starting with the prefix. */
+export function anyHasScope(tokens, needle, scopePrefix) {
+  return tokens.some(
+    (t) =>
+      (t.text === needle || t.text.trim() === needle) &&
+      t.scopes.some((s) => s.startsWith(scopePrefix))
+  );
+}
+
 export const readSample = (name) =>
   fs.readFileSync(path.join(root, 'samples', name), 'utf8');

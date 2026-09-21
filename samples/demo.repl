@@ -1,4 +1,7 @@
-// Sample platform description exercising the highlighting rules.
+/*
+ * Sample platform description exercising the highlighting rules.
+ * Block comments like this one are used in upstream platform files.
+ */
 
 using "platforms/cpus/stm32f4.repl"
 using "platforms/peripherals/extra.repl" prefixed "ext_"
@@ -7,10 +10,23 @@ cpu: CPU.CortexM @ sysbus
     cpuType: "cortex-m4"
     nvic: nvic
 
+cpu1: CPU.RiscV32 @ sysbus
+    cpuType: "rv32imac"
+    timeProvider: empty
+    privilegedArchitecture: PrivilegedArchitecture.Priv1_10
+    reset:
+        PC `syscon ResetVector`
+
 nvic: IRQControllers.NVIC @ sysbus 0xE000E000
     -> cpu@0
     systickFrequency: 168000000
     priorityMask: 0b11110000
+
+gic: IRQControllers.ARM_GenericInterruptController @ {
+        sysbus new Bus.BusMultiRegistration { address: 0x8000000; size: 0x10000; region: "distributor" };
+        sysbus new IRQControllers.ArmGicRedistributorRegistration { attachedCPU: cpu; address: 0x80a0000 }
+    }
+    architectureVersion: .GICv3
 
 flash: Memory.MappedMemory @ sysbus 0x08000000
     size: 0x100000
@@ -21,9 +37,14 @@ sram: Memory.MappedMemory @ sysbus 0x20000000
 uart0: UART.PL011 @ sysbus 0x40011000
     -> nvic@5
 
+timer: Timers.ARM_GenericTimer @ cpu
+    frequency: 100_000_000
+    EL3PhysicalTimerIRQ->gic#0@29
+    EL1PhysicalTimerIRQ->gic#0x1@30
+
 spi: SPI.MyController @ sysbus <0x40013000, +0x1000>
-    IRQ -> nvic@35
-    frequency: 48000000
+    IRQ -> nvic@35 | dma@2 | dma@4
+    frequency: 48_000_000
     enabled: true
     mode: TransferMode.FullDuplex
 
@@ -32,15 +53,36 @@ spi1: SPI.SomeChip @ {
         spiBridge1
     }
 
+dmaRequest: DMA.Request @ sysbus 0x40026000
+    RxDataAvailableRequest -> ldma@0x0040
+
 gpioPort: GPIOPort.STM32Gpio @ sysbus 0x40020000
-    [0-3] -> nvic@[6-9]
+    [0-3] -> nvic@[5, 5, 6, 6]
+    [4-15] -> nvicInput7@[0-11]
+    invertedAFPins: [[1, 5], [7, 2]]
     numberOfPins: 16
 
-dma: DMA.STM32DMA @ sysbus new Bus.BusMultiRegistration { address: 0x40026000; size: 0x400; region: "dma" }
+rstgen: Python.PythonPeripheral @ sysbus 0x11840000
+    size: 0x20
+    initable: true
+    script: '''
+if request.IsInit:
+    regs = [0xffffffff, 0xffffffff]
+elif request.IsRead:
+    offset = (request.Offset // 4) & 0x1
+    request.Value = regs[offset] & 0xffffffff
+'''
+
+statusReg: Python.PythonPeripheral @ sysbus 0x11850000
+    size: 0x4
+    script: '''request.Value = 0xFFFFFFFF'''
 
 virtualCpu: CPU.CortexM @ none
 
 sysbus:
     init:
-        Tag <0x40000000, 0x40000100> "RESERVED"
+        Tag <0x40000000, 0x40000100> "RESERVED"          # inline comments use '#' here
+        Tag <0x40033000 0x1000> "XCACHE0" silent=true
+        SilenceRange <0x82003000 0x200>                  # ddrphy
         ApplySVD @svd/stm32f4.svd
+        MarkAsSkippedOnLifeCycleReset sysbus.rstmgr_aon
