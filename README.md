@@ -114,9 +114,42 @@ Type the prefix and press <kbd>Tab</kbd>.
 `.resc`: `resc` (full script skeleton), `mach`, `loadelf`, `loadbin`, `macro`,
 `uartsocket`, `uartpty`, `analyzer`, `gdb`, `loglevel`, `include`
 
+## JetBrains IDEs (Rider, IntelliJ, CLion)
+
+JetBrains IDEs read VS Code-style TextMate bundles through the bundled
+**TextMate Bundles** plugin, so the same grammars work there — no separate
+plugin, and no second copy of the syntax rules to keep in sync.
+
+1. Download `renode-textmate-bundle-<version>.zip` from the
+   [releases](https://github.com/boulisshugo/vs-code-renode-resc-repl-extension/releases)
+   and unzip it (or run `npm run bundle`, which writes
+   `dist/renode-textmate-bundle/`).
+2. **Settings / Preferences → Editor → TextMate Bundles**
+3. Press **+**, select the unzipped folder, press **OK**.
+4. Reopen a `.repl` or `.resc` file.
+
+What carries over and what does not:
+
+| | VS Code | JetBrains |
+| --- | --- | --- |
+| Syntax highlighting | yes | yes, same grammars |
+| Comment toggling, brackets | yes | yes, from the same language configuration |
+| Snippets | yes | no — TextMate bundles do not carry them |
+| Indentation folding, auto-indent | yes | limited |
+| Colours come from | your VS Code theme | **Settings → Editor → Color Scheme → TextMate** |
+
+Because JetBrains maps TextMate scopes through its own colour scheme rather
+than a VS Code theme, the exact palette will differ from the screenshot above;
+the distinctions (definition vs type vs reference) are preserved.
+
+Embedded Python inside `script: '''…'''` needs a Python TextMate grammar
+registered in the IDE, which Rider does not ship by default. Without one the
+block is highlighted as a plain string rather than as Python — everything else
+is unaffected.
+
 ## Installing
 
-### From a packaged VSIX
+### VS Code, from a packaged VSIX
 
 ```bash
 npm install

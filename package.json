@@ -2,7 +2,7 @@
   "name": "renode-repl-resc",
   "displayName": "Renode .repl / .resc",
   "description": "Syntax highlighting, bracket matching and snippets for Renode platform descriptions (.repl) and Renode Monitor scripts (.resc).",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "publisher": "boulisshugo",
   "license": "MIT",
   "engines": {
@@ -80,7 +80,8 @@
     "test": "node --test test/*.test.mjs",
     "package": "vsce package",
     "corpus": "node tools/scan-corpus.mjs",
-    "preview": "node tools/render-preview.mjs"
+    "preview": "node tools/render-preview.mjs",
+    "bundle": "node tools/build-textmate-bundle.mjs"
   },
   "devDependencies": {
     "vscode-oniguruma": "^2.0.1",

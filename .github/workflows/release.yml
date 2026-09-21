@@ -36,6 +36,12 @@ jobs:
           vsix="renode-repl-resc-${version}.vsix"
           npx --yes @vscode/vsce package --out "$vsix"
           test -s "$vsix"
+          # The JetBrains TextMate bundle ships from the same grammars.
+          bundle="renode-textmate-bundle-${version}.zip"
+          node tools/build-textmate-bundle.mjs --out "dist/renode-textmate-bundle"
+          (cd dist && zip -qr "../$bundle" renode-textmate-bundle)
+          test -s "$bundle"
+          echo "bundle=$bundle" >> "$GITHUB_OUTPUT"
           if [ "${GITHUB_REF_TYPE}" = "tag" ]; then tag="${GITHUB_REF_NAME}"; else tag="v${version}"; fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "vsix=$vsix" >> "$GITHUB_OUTPUT"
@@ -49,8 +55,8 @@ jobs:
             found && /^## / { exit }
             found { print }
           ' CHANGELOG.md > RELEASE_NOTES.md
-          printf '\n## Install\n\nDownload `%s` below, then in VS Code open the Extensions panel, choose **Install from VSIX...** from the `...` menu and pick the file.\nFrom a terminal: `code --install-extension %s`\n' \
-            "${{ steps.meta.outputs.vsix }}" "${{ steps.meta.outputs.vsix }}" >> RELEASE_NOTES.md
+          printf '\n## Install\n\n**VS Code** — download `%s`, open the Extensions panel, choose **Install from VSIX...** from the `...` menu and pick the file (or `code --install-extension %s`).\n\n**JetBrains (Rider, IntelliJ, CLion)** — download `%s`, unzip it, then add the folder under **Settings -> Editor -> TextMate Bundles**.\n' \
+            "${{ steps.meta.outputs.vsix }}" "${{ steps.meta.outputs.vsix }}" "${{ steps.meta.outputs.bundle }}" >> RELEASE_NOTES.md
           cat RELEASE_NOTES.md
 
       - name: Create the release
@@ -61,14 +67,15 @@ jobs:
           tag="${{ steps.meta.outputs.tag }}"
           vsix="${{ steps.meta.outputs.vsix }}"
           if gh release view "$tag" >/dev/null 2>&1; then
-            gh release upload "$tag" "$vsix" --clobber
+            gh release upload "$tag" "$vsix" "${{ steps.meta.outputs.bundle }}" --clobber
             gh release edit "$tag" --notes-file RELEASE_NOTES.md
           else
-            gh release create "$tag" "$vsix" \
+            gh release create "$tag" "$vsix" "${{ steps.meta.outputs.bundle }}" \
               --title "$tag" \
               --notes-file RELEASE_NOTES.md \
               --target "$GITHUB_SHA"
           fi
           # Fail loudly if the asset did not actually attach.
-          gh release view "$tag" --json assets \
-            --jq '.assets[].name' | grep -qx "$vsix"
+          names="$(gh release view "$tag" --json assets --jq '.assets[].name')"
+          echo "$names" | grep -qx "$vsix"
+          echo "$names" | grep -qx "${{ steps.meta.outputs.bundle }}"

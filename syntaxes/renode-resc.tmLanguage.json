@@ -19,10 +19,19 @@
       "include": "#python-block"
     },
     {
+      "include": "#python-block-fallback"
+    },
+    {
       "include": "#embedded-repl-triple"
     },
     {
+      "include": "#embedded-repl-triple-fallback"
+    },
+    {
       "include": "#embedded-repl"
+    },
+    {
+      "include": "#embedded-repl-fallback"
     },
     {
       "include": "#macro-definition"
@@ -543,6 +552,63 @@
     "register": {
       "name": "variable.language.register.renode-resc",
       "match": "\\b(PC|SP|LR)\\b"
+    },
+    "python-block-fallback": {
+      "name": "meta.embedded.python.renode-resc",
+      "begin": "\\b(python)[ \\t]+(\"\"\")",
+      "beginCaptures": {
+        "1": {
+          "name": "keyword.control.python.renode-resc"
+        },
+        "2": {
+          "name": "punctuation.definition.string.begin.renode-resc"
+        }
+      },
+      "end": "\"\"\"",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.end.renode-resc"
+        }
+      },
+      "comment": "Fallback for when source.python is unavailable."
+    },
+    "embedded-repl-triple-fallback": {
+      "name": "meta.embedded.repl.renode-resc",
+      "begin": "\\b(LoadPlatformDescriptionFromString)[ \\t]+(\"\"\")",
+      "beginCaptures": {
+        "1": {
+          "name": "support.function.renode-resc"
+        },
+        "2": {
+          "name": "punctuation.definition.string.begin.renode-resc"
+        }
+      },
+      "end": "\"\"\"",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.end.renode-resc"
+        }
+      },
+      "comment": "Fallback for when source.renode-repl is unavailable."
+    },
+    "embedded-repl-fallback": {
+      "name": "meta.embedded.repl.renode-resc",
+      "begin": "\\b(LoadPlatformDescriptionFromString)[ \\t]+(['\"])",
+      "beginCaptures": {
+        "1": {
+          "name": "support.function.renode-resc"
+        },
+        "2": {
+          "name": "punctuation.definition.string.begin.renode-resc"
+        }
+      },
+      "end": "\\2|$",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.end.renode-resc"
+        }
+      },
+      "comment": "Fallback for when source.renode-repl is unavailable."
     }
   }
 }

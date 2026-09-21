@@ -4,6 +4,7 @@
 node_modules/**
 test/**
 tools/**
+dist/**
 package-lock.json
 images/preview.html
 images/.theme-cache/**

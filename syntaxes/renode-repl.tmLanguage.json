@@ -124,6 +124,9 @@
           "include": "#python-script"
         },
         {
+          "include": "#python-script-fallback"
+        },
+        {
           "include": "#monitor-expression"
         },
         {
@@ -517,6 +520,22 @@
     "register": {
       "name": "variable.language.register.renode-repl",
       "match": "\\b(PC|SP|LR)\\b"
+    },
+    "python-script-fallback": {
+      "name": "string.quoted.triple.renode-repl",
+      "begin": "'''",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.begin.renode-repl"
+        }
+      },
+      "end": "'''",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.end.renode-repl"
+        }
+      },
+      "comment": "Used when source.python is unavailable: an unresolved include makes the TextMate engine drop the whole enclosing rule, so this keeps the block highlighted as a string instead of losing it entirely."
     }
   }
 }

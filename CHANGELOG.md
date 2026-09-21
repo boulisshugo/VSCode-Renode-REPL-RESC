@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.3.0
+
+* **JetBrains IDE support.** `npm run bundle` builds a TextMate bundle that
+  Rider, IntelliJ, CLion and the rest load through their bundled TextMate
+  Bundles plugin, reusing these grammars verbatim so the two editors can never
+  disagree about syntax. Released alongside the `.vsix` as
+  `renode-textmate-bundle-<version>.zip`.
+* **Embedded grammars now degrade instead of disappearing.** A TextMate engine
+  drops the entire enclosing rule when a cross-grammar `include` cannot be
+  resolved, so in a host without the Python grammar — Rider, for instance — a
+  `script: '''…'''` block lost its highlighting altogether, delimiters
+  included. Each embed now has a fallback that keeps the block highlighted as a
+  string. The same protection covers `python """…"""` and the inline
+  platform fragments in `.resc`.
+* New tests build the bundle and tokenize the samples from it, which is what
+  surfaced the problem above.
+
 ## 0.2.1
 
 Two reported highlighting problems, both fixed.
