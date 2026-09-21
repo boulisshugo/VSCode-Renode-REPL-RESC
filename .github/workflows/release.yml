@@ -1,0 +1,74 @@
+name: Release
+
+# Publishes a GitHub Release with the packaged .vsix attached.
+# Trigger by pushing a tag (git tag v0.2.0 && git push origin v0.2.0),
+# or manually from the Actions tab, which tags the current commit with
+# v<version> taken from package.json.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+      - run: npm test
+
+      - name: Package the extension
+        id: meta
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./package.json').version")"
+          vsix="renode-repl-resc-${version}.vsix"
+          npx --yes @vscode/vsce package --out "$vsix"
+          test -s "$vsix"
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then tag="${GITHUB_REF_NAME}"; else tag="v${version}"; fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "vsix=$vsix" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Extract the changelog section for this version
+        run: |
+          set -euo pipefail
+          awk -v v="${{ steps.meta.outputs.version }}" '
+            $0 == "## " v { found = 1; next }
+            found && /^## / { exit }
+            found { print }
+          ' CHANGELOG.md > RELEASE_NOTES.md
+          printf '\n## Install\n\nDownload `%s` below, then in VS Code open the Extensions panel, choose **Install from VSIX...** from the `...` menu and pick the file.\nFrom a terminal: `code --install-extension %s`\n' \
+            "${{ steps.meta.outputs.vsix }}" "${{ steps.meta.outputs.vsix }}" >> RELEASE_NOTES.md
+          cat RELEASE_NOTES.md
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="${{ steps.meta.outputs.tag }}"
+          vsix="${{ steps.meta.outputs.vsix }}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" "$vsix" --clobber
+            gh release edit "$tag" --notes-file RELEASE_NOTES.md
+          else
+            gh release create "$tag" "$vsix" \
+              --title "$tag" \
+              --notes-file RELEASE_NOTES.md \
+              --target "$GITHUB_SHA"
+          fi
+          # Fail loudly if the asset did not actually attach.
+          gh release view "$tag" --json assets \
+            --jq '.assets[].name' | grep -qx "$vsix"

@@ -6,7 +6,7 @@
   "publisher": "boulisshugo",
   "license": "MIT",
   "engines": {
-    "vscode": "^1.75.0"
+    "vscode": "^1.45.0"
   },
   "categories": [
     "Programming Languages",
