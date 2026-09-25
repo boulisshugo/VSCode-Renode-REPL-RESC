@@ -219,7 +219,8 @@ test('the view renders the diagram, the interrupt table and the memory map', () 
   const html = renderPlatformView(platform, { title: 'preview.repl' });
   assert.match(html, /<svg/);
   assert.match(html, /Interrupt lines/);
-  assert.match(html, /Memory map/);
+  assert.match(html, /Address space/);
+  assert.match(html, /Regions/);
   assert.match(html, /preview\.repl/);
   assert.ok(!/<script/i.test(html), 'the webview needs no scripts');
 });
@@ -243,4 +244,116 @@ test('the routing view escapes values taken from the file', () => {
   });
   assert.ok(!html.includes('<img src=x>'), 'type text must be escaped');
   assert.match(html, /&lt;img src=x&gt;/);
+});
+
+// --- go to definition ----------------------------------------------------------
+
+const definitions = require('../src/core/definitions.js');
+const { buildIndex, resolveType } = require('../src/core/peripheralIndex.js');
+
+test('clicking a declaration type targets the type, the name targets the peripheral', () => {
+  const line = 'timer1: Timers.ST54M_timer @ sysbus 0x40000000';
+  assert.deepEqual(definitions.replTargetAt(line, 12), { kind: 'type', type: 'Timers.ST54M_timer' });
+  assert.deepEqual(definitions.replTargetAt(line, 2), { kind: 'peripheral', name: 'timer1' });
+});
+
+test('clicking an IRQ destination targets that peripheral', () => {
+  assert.deepEqual(definitions.replTargetAt('    IRQ -> nvic@4', 13), { kind: 'peripheral', name: 'nvic' });
+  assert.deepEqual(definitions.replTargetAt('    A->gic#0@29', 9), { kind: 'peripheral', name: 'gic' });
+});
+
+test('clicking a new-registration type targets the type', () => {
+  const line = '    @ sysbus new Bus.BusMultiRegistration { address: 0x0 }';
+  assert.deepEqual(definitions.replTargetAt(line, 22), { kind: 'type', type: 'Bus.BusMultiRegistration' });
+});
+
+test('in a .resc a peripheral path targets its last segment', () => {
+  assert.deepEqual(definitions.rescTargetAt('showAnalyzer sysbus.uart0', 22), { kind: 'peripheral', name: 'uart0' });
+  assert.deepEqual(definitions.rescTargetAt('logLevel -1 spi0', 14), { kind: 'peripheral', name: 'spi0' });
+});
+
+test('a peripheral is located in the file that declares it', () => {
+  const platform = loadPlatform(path.join(root, 'samples/preview.repl'));
+  const found = definitions.locatePeripheral(platform, 'uart0');
+  assert.ok(found, 'uart0 should be found');
+  assert.match(found.file, /preview\.repl$/);
+  const declaration = fs.readFileSync(found.file, 'utf8').split('\n')[found.line];
+  assert.match(declaration, /^uart0:/);
+});
+
+test('the C# index resolves a type to its class declaration', () => {
+  const files = {
+    '/src/UART/PL011.cs': 'namespace Antmicro.Renode.Peripherals.UART\n{\n    public class PL011 : UARTBase\n    {\n    }\n}',
+    '/src/Other/PL011.cs': 'namespace Something.Else\n{\n    public class PL011\n    {\n    }\n}'
+  };
+  const index = buildIndex(['/src'], {
+    readFile: (f) => files[f],
+    listDir: (d) =>
+      d === '/src'
+        ? [{ name: 'UART', dir: true }, { name: 'Other', dir: true }]
+        : [{ name: 'PL011.cs', dir: false }]
+  });
+  const [best] = resolveType(index, 'UART.PL011');
+  assert.equal(best.namespace, 'Antmicro.Renode.Peripherals.UART');
+  assert.equal(best.line, 2, 'points at the class declaration line');
+
+  const located = definitions.locateType(index, 'UART.PL011');
+  assert.match(located[0].file, /UART\/PL011\.cs$/);
+});
+
+test('an unknown type resolves to nothing rather than throwing', () => {
+  const index = buildIndex([], { listDir: () => [] });
+  assert.deepEqual(definitions.locateType(index, 'Nope.Missing'), []);
+});
+
+test('types used by upstream platforms resolve against real Renode sources', { skip: !process.env.RENODE_INFRA }, () => {
+  const index = buildIndex([path.join(process.env.RENODE_INFRA, 'src')]);
+  assert.ok(index.files > 500, `expected a real checkout, scanned ${index.files} files`);
+  // Spot-check types that appear across the upstream platform corpus.
+  for (const type of ['UART.PL011', 'I2C.NRF52840_I2C', 'Timers.NRF52840_Timer']) {
+    assert.ok(resolveType(index, type).length, `${type} did not resolve`);
+  }
+  const [pl011] = resolveType(index, 'UART.PL011');
+  assert.match(pl011.namespace, /Peripherals\.UART$/);
+});
+
+// --- memory map ----------------------------------------------------------------
+
+test('sizes come from a range or from a size property', () => {
+  const { peripherals } = parseRepl(
+    'a: X.Y @ sysbus <0x40013000, +0x1000>\nb: X.Y @ sysbus 0x20000000\n    size: 0x40000\nc: X.Y @ sysbus <0x100, 0x200>'
+  );
+  assert.deepEqual(peripherals.map((p) => [p.address, p.size]), [
+    ['0x40013000', '0x1000'],
+    ['0x20000000', '0x40000'],
+    ['0x100', '0x100']
+  ]);
+});
+
+test('the address space is split into bands around large holes', () => {
+  const platform = loadPlatform(path.join(root, 'samples/preview.repl'));
+  const html = renderPlatformView(platform, { title: 'preview.repl' });
+  assert.match(html, /Address space/);
+  assert.match(html, /unmapped/, 'gaps between bands are labelled');
+});
+
+test('a band of unsized regions is drawn in order and marked not to scale', () => {
+  const peripherals = Array.from({ length: 6 }, (_, i) => ({
+    name: `p${i}`,
+    address: `0x4000${i}000`,
+    irqs: [],
+    properties: []
+  }));
+  const html = renderPlatformView({ peripherals });
+  assert.match(html, /not to scale/);
+  for (let i = 0; i < 6; i++) assert.match(html, new RegExp(`>p${i}<`));
+});
+
+test('overlapping regions are reported', () => {
+  const peripherals = [
+    { name: 'a', address: '0x1000', size: '0x1000', irqs: [], properties: [] },
+    { name: 'b', address: '0x1800', size: '0x100', irqs: [], properties: [] }
+  ];
+  const html = renderPlatformView({ peripherals });
+  assert.match(html, /overlap/);
 });

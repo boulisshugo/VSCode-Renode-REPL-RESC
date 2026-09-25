@@ -151,17 +151,51 @@ sources, so `data/object-methods.json` supplies one.
 Completion follows the same data: Monitor commands at the start of a line, and
 a receiver's methods after `sysbus `, `machine `, `emulation ` and so on.
 
+### Ctrl+click to the definition
+
+Ctrl+click (or F12) follows names to where they are defined:
+
+| Click on | Opens |
+| --- | --- |
+| A peripheral name in a `.resc` — `sysbus.uart0` | its declaration in the `.repl` |
+| An IRQ destination in a `.repl` — `nvic` in `-> nvic@4` | that peripheral's declaration |
+| A type in a `.repl` — `Timers.ST54M_timer` | the C# class implementing it |
+
+The first two work out of the box. Jumping into a peripheral's implementation
+needs to know where your Renode sources are:
+
+```jsonc
+"renode.peripheralSourceRoots": [
+  "C:/work/renode/src",          // a Renode checkout
+  "C:/work/my-peripherals"       // and/or your own peripheral sources
+]
+```
+
+The index maps a `.repl` type onto a C# declaration by matching both parts:
+`UART.PL011` is `class PL011` in a namespace ending `.UART`, which keeps types
+apart when several trees declare a class of the same name. Run **Renode:
+Rebuild Peripheral Source Index** after adding sources.
+
 ### Peripheral routing view
 
 **Renode: Show Peripheral Routing** (Command Palette, or the editor title bar)
 opens the platform as a diagram. Columns follow the interrupt path — a
 peripheral sits to the right of everything that signals it, so sources are on
-the left and the CPU ends up on the right. Alongside it are two tables: the
-interrupt lines sorted by target and line number, which is what you consult to
-answer "what is on IRQ 5?", and the memory map sorted by address.
+the left and the CPU ends up on the right. A destination the platform never
+declares is drawn dashed, which catches a typo in an IRQ target or a platform
+file the editor could not resolve.
 
-A destination that the platform never declares is drawn dashed, which catches
-a typo in an IRQ target or a platform file the editor could not resolve.
+Below it, the **address space** is drawn as proportional bands. A platform is
+sparse — flash at 0, RAM at `0x20000000`, peripherals at `0x40000000` — so a
+single linear scale would collapse everything into slivers. Regions are
+clustered instead, each cluster gets its own scale, and the hole between
+clusters is labelled with how much is unmapped.
+
+Most `.repl` entries leave the size to the peripheral's C# model rather than
+declaring one, so a band where sizes are mostly absent is drawn in address
+order and labelled *not to scale* — inventing sizes would make a prettier
+picture and a misleading one. Regions that overlap are called out, since two
+peripherals answering the same addresses is a platform bug.
 
 It works on a `.repl` directly, or on a `.resc` by way of the platform it
 loads.

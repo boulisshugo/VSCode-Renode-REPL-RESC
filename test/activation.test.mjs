@@ -13,13 +13,16 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // module loads, the API surface it touches exists, and activate() registers
 // what the manifest promises.
 function withMockVscode(run) {
-  const registered = { completion: [], hover: [], commands: [], subscriptions: 0 };
+  const registered = { completion: [], hover: [], definition: [], commands: [], subscriptions: 0 };
   const vscode = {
     CompletionItemKind: { Variable: 5, Keyword: 13, Method: 1, Class: 6, Text: 0 },
     ViewColumn: { Beside: -2 },
     CompletionItem: class { constructor(label, kind) { this.label = label; this.kind = kind; } },
     MarkdownString: class { constructor(value) { this.value = value; } },
     Hover: class { constructor(contents, range) { this.contents = contents; this.range = range; } },
+    Location: class { constructor(uri, position) { this.uri = uri; this.range = position; } },
+    Position: class { constructor(line, character) { this.line = line; this.character = character; } },
+    Uri: { file: (f) => ({ fsPath: f, scheme: 'file' }) },
     languages: {
       registerCompletionItemProvider: (selector, provider, ...triggers) => {
         registered.completion.push({ selector, provider, triggers });
@@ -27,6 +30,10 @@ function withMockVscode(run) {
       },
       registerHoverProvider: (selector, provider) => {
         registered.hover.push({ selector, provider });
+        return { dispose() {} };
+      },
+      registerDefinitionProvider: (selector, provider) => {
+        registered.definition.push({ selector, provider });
         return { dispose() {} };
       }
     },
@@ -36,11 +43,20 @@ function withMockVscode(run) {
         return { dispose() {} };
       }
     },
-    window: { activeTextEditor: undefined, createWebviewPanel: () => ({ webview: {} }), showInformationMessage() {}, showWarningMessage() {} },
+    window: {
+      activeTextEditor: undefined,
+      createWebviewPanel: () => ({ webview: {} }),
+      showInformationMessage() {},
+      showWarningMessage() {},
+      setStatusBarMessage() {}
+    },
     workspace: {
       textDocuments: [],
+      workspaceFolders: [],
+      getConfiguration: () => ({ get: () => [] }),
       onDidSaveTextDocument: () => ({ dispose() {} }),
-      onDidChangeTextDocument: () => ({ dispose() {} })
+      onDidChangeTextDocument: () => ({ dispose() {} }),
+      onDidChangeConfiguration: () => ({ dispose() {} })
     }
   };
 
@@ -67,8 +83,12 @@ test('activate registers the providers and the command', () => {
     assert.deepEqual(registered.completion[0].selector, 'renode-resc');
     assert.deepEqual(registered.completion[0].triggers, ['.', ' ']);
     assert.equal(registered.hover.length, 1);
-    assert.deepEqual(registered.commands.map((c) => c.id), ['renode.showPlatformView']);
-    assert.ok(registered.subscriptions >= 4);
+    assert.deepEqual(registered.definition.map((d) => d.selector).sort(), ['renode-repl', 'renode-resc']);
+    assert.deepEqual(
+      registered.commands.map((c) => c.id).sort(),
+      ['renode.rebuildPeripheralIndex', 'renode.showPlatformView']
+    );
+    assert.ok(registered.subscriptions >= 6);
   });
 });
 
@@ -76,7 +96,7 @@ test('the registered command id matches the manifest', () => {
   const manifest = require('../package.json');
   const declared = manifest.contributes.commands.map((c) => c.command);
   withMockVscode(({ registered }) => {
-    assert.deepEqual(registered.commands.map((c) => c.id), declared);
+    assert.deepEqual(registered.commands.map((c) => c.id).sort(), [...declared].sort());
   });
   assert.equal(manifest.main, './src/extension.js');
 });
@@ -94,6 +114,21 @@ test('completion proposes peripherals from the .repl the .resc loads', () => {
     // preview.repl declares these; they can only come from following the load line.
     assert.ok(labels.includes('uart0'), `expected uart0, got ${labels.join(', ')}`);
     assert.ok(labels.includes('spi0'));
+  });
+});
+
+test('ctrl+click on a peripheral in a .resc points at its .repl declaration', () => {
+  withMockVscode(({ registered }) => {
+    const provider = registered.definition.find((d) => d.selector === 'renode-resc').provider;
+    const document = {
+      languageId: 'renode-resc',
+      uri: { fsPath: path.join(root, 'samples/preview.resc') },
+      getText: () => 'machine LoadPlatformDescription @preview.repl\n',
+      lineAt: () => ({ text: 'showAnalyzer sysbus.uart0' })
+    };
+    const location = provider.provideDefinition(document, { character: 22 });
+    assert.ok(location, 'expected a definition');
+    assert.match(location.uri.fsPath, /preview\.repl$/);
   });
 });
 

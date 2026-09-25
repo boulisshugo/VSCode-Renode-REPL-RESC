@@ -3,6 +3,8 @@
 // memory map, rendered from a parsed platform. Pure string building so it can
 // be produced and inspected outside the editor.
 
+const { toNumber } = require('./replParser');
+
 const esc = (s) =>
   String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -199,6 +201,184 @@ function renderInterruptTable(peripherals) {
   return `<table class="map irqs"><thead><tr><th>Target</th><th>Line</th><th>Source</th><th>Signal</th></tr></thead><tbody>${body}</tbody></table>`;
 }
 
+const hex = (n) => '0x' + n.toString(16).toUpperCase();
+
+function formatSize(bytes) {
+  if (!Number.isFinite(bytes) || bytes <= 0) return '';
+  const units = [['G', 1 << 30], ['M', 1 << 20], ['K', 1024]];
+  for (const [suffix, factor] of units) {
+    if (bytes >= factor) {
+      const value = bytes / factor;
+      return `${Number.isInteger(value) ? value : value.toFixed(1)} ${suffix}B`;
+    }
+  }
+  return `${bytes} B`;
+}
+
+/**
+ * Address space as proportional bands. A real platform is sparse — flash at 0,
+ * RAM at 0x20000000, peripherals at 0x40000000 — so one linear scale would
+ * collapse everything into slivers. Regions are clustered and each cluster gets
+ * its own scale, with the skipped span labelled between them.
+ */
+function buildMemoryBands(peripherals) {
+  const regions = [];
+  for (const p of peripherals) {
+    const base = toNumber(p.address);
+    if (!Number.isFinite(base)) continue;
+    const size = toNumber(p.size);
+    regions.push({
+      name: p.name,
+      type: p.type,
+      base,
+      size: Number.isFinite(size) && size > 0 ? size : undefined,
+      line: p.line,
+      file: p.file
+    });
+  }
+  regions.sort((a, b) => a.base - b.base || (b.size || 0) - (a.size || 0));
+
+  // Overlap is worth surfacing: two peripherals answering the same addresses
+  // is a platform bug, not a layout detail.
+  for (let i = 0; i < regions.length; i++) {
+    const r = regions[i];
+    if (!r.size) continue;
+    for (let j = i + 1; j < regions.length; j++) {
+      const other = regions[j];
+      if (other.base >= r.base + r.size) break;
+      r.overlaps = true;
+      other.overlaps = true;
+    }
+  }
+
+  const bands = [];
+  for (const r of regions) {
+    const end = r.base + (r.size || 1);
+    const band = bands[bands.length - 1];
+    if (!band) { bands.push({ start: r.base, end, regions: [r] }); continue; }
+    const gap = r.base - band.end;
+    const span = Math.max(band.end - band.start, 1);
+    // Start a new band when the hole is large both absolutely and relative to
+    // what has been drawn so far.
+    if (gap > 0x10000 && gap > span * 2) bands.push({ start: r.base, end, regions: [r] });
+    else { band.end = Math.max(band.end, end); band.regions.push(r); }
+  }
+  for (const b of bands) if (b.end === b.start) b.end = b.start + 1;
+  return { bands, regions };
+}
+
+function renderMemoryBands(peripherals) {
+  const { bands, regions } = buildMemoryBands(peripherals);
+  if (!regions.length) return '<p class="empty-note">No peripherals carry a bus address.</p>';
+
+  const WIDTH = 940;
+  const LANE_H = 30;
+  const MIN_W = 5;
+
+  const parts = bands.map((band, index) => {
+    const span = band.end - band.start;
+    const scale = (value) => ((value - band.start) / span) * WIDTH;
+    const sized = band.regions.filter((r) => r.size).length;
+
+    // Most .repl entries leave the size to the peripheral's C# model. Drawing
+    // those to scale turns a whole band into slivers, and inventing a size
+    // would be a lie, so such a band is drawn in address order instead and
+    // labelled as not to scale.
+    if (band.regions.length > 3 && sized / band.regions.length < 0.5) {
+      return renderSequenceBand(band, index, bands, WIDTH, LANE_H);
+    }
+
+    // Lay regions on separate lanes when they would otherwise overlap visually.
+    const lanes = [];
+    const placed = band.regions.map((r) => {
+      const x = scale(r.base);
+      const w = Math.max(MIN_W, r.size ? scale(r.base + r.size) - x : MIN_W);
+      let lane = lanes.findIndex((end) => x >= end + 2);
+      if (lane === -1) { lane = lanes.length; lanes.push(0); }
+      lanes[lane] = x + w;
+      return { ...r, x, w, lane };
+    });
+    const height = Math.max(1, lanes.length) * LANE_H + 8;
+
+    const boxes = placed
+      .map((r) => {
+        const cls = ['region', r.overlaps ? 'overlap' : '', r.size ? '' : 'unsized'].filter(Boolean).join(' ');
+        const label = r.w > 46 ? `<text x="${r.x + 5}" y="${r.lane * LANE_H + 19}">${esc(r.name)}</text>` : '';
+        const detail = `${r.name}${r.type ? ` — ${r.type}` : ''}\n${hex(r.base)}${
+          r.size ? ` … ${hex(r.base + r.size - 1)} (${formatSize(r.size)})` : ' (size not given in the .repl)'
+        }${r.overlaps ? '\noverlaps another region' : ''}`;
+        return (
+          `<g class="${cls}" data-name="${esc(r.name)}"><title>${esc(detail)}</title>` +
+          `<rect x="${r.x.toFixed(1)}" y="${r.lane * LANE_H + 4}" width="${r.w.toFixed(1)}" height="${LANE_H - 9}" rx="3"/>` +
+          label +
+          `</g>`
+        );
+      })
+      .join('');
+
+    const gapNote =
+      index > 0
+        ? `<div class="gap">&#8942; ${esc(formatSize(band.start - bands[index - 1].end) || 'gap')} unmapped</div>`
+        : '';
+
+    return (
+      gapNote +
+      `<div class="band">` +
+        `<div class="band-head"><span>${esc(hex(band.start))}</span>` +
+        `<span class="band-span">${esc(formatSize(band.end - band.start))}</span>` +
+        `<span>${esc(hex(band.end))}</span></div>` +
+        `<svg viewBox="0 0 ${WIDTH} ${height}" preserveAspectRatio="none" height="${height}">${boxes}</svg>` +
+      `</div>`
+    );
+  });
+
+  const overlapping = regions.filter((r) => r.overlaps).length;
+  const note = overlapping
+    ? `<p class="warn-note">${overlapping} regions overlap another region.</p>`
+    : '';
+  return note + parts.join('');
+}
+
+function renderSequenceBand(band, index, bands, WIDTH, LANE_H) {
+  const perRow = Math.max(1, Math.floor(WIDTH / 118));
+  const rows = Math.ceil(band.regions.length / perRow);
+  const cellW = WIDTH / perRow;
+  const height = rows * LANE_H + 8;
+
+  const boxes = band.regions
+    .map((r, i) => {
+      const col = i % perRow;
+      const row = Math.floor(i / perRow);
+      const x = col * cellW;
+      const cls = ['region', r.overlaps ? 'overlap' : '', r.size ? '' : 'unsized'].filter(Boolean).join(' ');
+      const detail = `${r.name}${r.type ? ` \u2014 ${r.type}` : ''}\n${hex(r.base)}${
+        r.size ? ` \u2026 ${hex(r.base + r.size - 1)} (${formatSize(r.size)})` : ' (size not given in the .repl)'
+      }`;
+      return (
+        `<g class="${cls}" data-name="${esc(r.name)}"><title>${esc(detail)}</title>` +
+        `<rect x="${(x + 2).toFixed(1)}" y="${row * LANE_H + 4}" width="${(cellW - 4).toFixed(1)}" height="${LANE_H - 9}" rx="3"/>` +
+        `<text x="${(x + 7).toFixed(1)}" y="${row * LANE_H + 18}">${esc(truncate(r.name, 13))}</text>` +
+        `</g>`
+      );
+    })
+    .join('');
+
+  const gapNote =
+    index > 0
+      ? `<div class="gap">&#8942; ${esc(formatSize(band.start - bands[index - 1].end) || 'gap')} unmapped</div>`
+      : '';
+
+  return (
+    gapNote +
+    `<div class="band">` +
+      `<div class="band-head"><span>${esc(hex(band.start))}</span>` +
+      `<span class="band-span">${band.regions.length} regions &middot; address order, not to scale</span>` +
+      `<span>${esc(hex(band.end))}</span></div>` +
+      `<svg viewBox="0 0 ${WIDTH} ${height}" preserveAspectRatio="none" height="${height}">${boxes}</svg>` +
+    `</div>`
+  );
+}
+
 function renderMemoryMap(peripherals) {
   const parse = (a) => (a == null ? NaN : Number(a.startsWith('0x') || a.startsWith('0X') ? a : a));
   const mapped = peripherals
@@ -252,7 +432,26 @@ function renderPlatformView(platform, options = {}) {
   .stats { color: var(--dim); font-size: 12px; }
   .stats span + span::before { content: "·"; margin: 0 8px; color: var(--line); }
   .layout { display: flex; align-items: stretch; height: calc(100vh - 64px); }
-  .diagram { flex: 1; min-width: 0; overflow: auto; padding: 8px 0 0 0; }
+  .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .pane { min-height: 0; display: flex; flex-direction: column; }
+  .pane > h2 { margin: 0; padding: 9px 20px 8px; font-size: 11px; text-transform: uppercase;
+    letter-spacing: .07em; color: var(--dim); font-weight: 600; border-bottom: 1px solid var(--line); }
+  .pane .scroll { overflow: auto; flex: 1; min-height: 0; }
+  .diagram { flex: 1.7; }
+  .memory { flex: 1; border-top: 1px solid var(--line); }
+  .memory .scroll { padding: 14px 20px 20px; }
+  .band { margin-bottom: 4px; }
+  .band-head { display: flex; justify-content: space-between; font-family: ui-monospace, monospace;
+    font-size: 10.5px; color: var(--dim); padding: 0 1px 3px; }
+  .band-head .band-span { color: #6E7681; }
+  .band svg { display: block; width: 100%; background: #191919; border: 1px solid var(--line); border-radius: 4px; }
+  .gap { color: #6E7681; font-size: 10.5px; text-align: center; padding: 5px 0 6px; letter-spacing: .04em; }
+  .region rect { fill: #33506B; stroke: #5B93C7; stroke-width: 1; }
+  .region text { fill: #D6E4F0; font-family: ui-monospace, monospace; font-size: 10.5px; }
+  .region.unsized rect { fill: #3A3A3A; stroke: #6E7681; stroke-dasharray: 3 2; }
+  .region.overlap rect { fill: #5A3230; stroke: var(--warn); }
+  .region:hover rect { fill: #3F6288; stroke: var(--accent); }
+  .warn-note { color: var(--warn); font-size: 11.5px; margin: 0 0 10px; }
   aside {
     width: 360px; flex: none; border-left: 1px solid var(--line);
     background: var(--panel); overflow: auto; padding: 14px 16px 20px;
@@ -292,15 +491,24 @@ function renderPlatformView(platform, options = {}) {
     <div class="stats">${stats.map((s) => `<span>${esc(s)}</span>`).join('')}</div>
   </header>
   <div class="layout">
-    <div class="diagram">${
-      routing.nodes.length
-        ? renderDiagram(routing)
-        : '<p class="empty">No interrupt connections found in this platform.</p>'
-    }</div>
+    <div class="main">
+      <section class="pane diagram">
+        <h2>Interrupt routing</h2>
+        <div class="scroll">${
+          routing.nodes.length
+            ? renderDiagram(routing)
+            : '<p class="empty">No interrupt connections found in this platform.</p>'
+        }</div>
+      </section>
+      <section class="pane memory">
+        <h2>Address space</h2>
+        <div class="scroll">${renderMemoryBands(peripherals)}</div>
+      </section>
+    </div>
     <aside>
       <h2>Interrupt lines</h2>
       ${renderInterruptTable(peripherals)}
-      <h2 class="spaced">Memory map</h2>
+      <h2 class="spaced">Regions</h2>
       ${renderMemoryMap(peripherals)}
       <div class="legend">
         <p>Columns follow the interrupt path: a peripheral sits to the right of

@@ -54,7 +54,7 @@ if (pngOut) {
   });
   await page.setViewportSize({
     width: Math.min(2200, Math.ceil(size.w) + 360),
-    height: Math.min(1500, Math.ceil(size.h) + 90)
+    height: Math.min(1700, Math.ceil(size.h) + 460)
   });
   const target = path.resolve(root, pngOut);
   await page.screenshot({ path: target });

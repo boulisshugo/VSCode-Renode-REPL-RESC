@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.5.0
+
+* **Ctrl+click to the definition.** A peripheral name in a `.resc` opens its
+  `.repl` declaration; an IRQ destination in a `.repl` opens the peripheral it
+  names; a type such as `Timers.ST54M_timer` opens the C# class implementing
+  it. The last one needs `renode.peripheralSourceRoots` pointing at a Renode
+  checkout and/or your own peripheral sources. Types are matched on namespace
+  as well as class name, so `UART.PL011` finds `class PL011` in a namespace
+  ending `.UART` rather than any class of that name. Measured against the
+  upstream platform corpus, 91% of the types in use resolve against
+  `renode-infrastructure` alone.
+* **The address space is now drawn, not just tabulated.** Regions are clustered
+  into proportional bands with the unmapped hole between them labelled, since a
+  single linear scale collapses a sparse memory map into slivers. Sizes are
+  read from `<base, +size>`, `<base, end>` and a `size:` property. Only about a
+  third of upstream regions declare a size at all, so a band where sizes are
+  mostly absent is drawn in address order and marked *not to scale* rather than
+  being given invented sizes. Overlapping regions are flagged.
+* **Renode: Rebuild Peripheral Source Index** re-scans the configured sources.
+
 ## 0.4.0
 
 The extension now has a runtime, so it can answer questions about the platform

@@ -2,7 +2,7 @@
   "name": "renode-repl-resc",
   "displayName": "Renode .repl / .resc",
   "description": "Syntax highlighting, bracket matching and snippets for Renode platform descriptions (.repl) and Renode Monitor scripts (.resc).",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publisher": "boulisshugo",
   "license": "MIT",
   "engines": {
@@ -85,6 +85,11 @@
         "command": "renode.showPlatformView",
         "title": "Renode: Show Peripheral Routing",
         "category": "Renode"
+      },
+      {
+        "command": "renode.rebuildPeripheralIndex",
+        "title": "Renode: Rebuild Peripheral Source Index",
+        "category": "Renode"
       }
     ],
     "menus": {
@@ -95,6 +100,19 @@
           "group": "navigation"
         }
       ]
+    },
+    "configuration": {
+      "title": "Renode",
+      "properties": {
+        "renode.peripheralSourceRoots": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Directories holding Renode peripheral sources (`.cs`). Ctrl+click on a peripheral type in a `.repl` opens the class that implements it. Absolute paths, or paths relative to a workspace folder. Point this at a Renode checkout (for example `renode/src`) and/or your own peripheral sources."
+        }
+      }
     }
   },
   "scripts": {

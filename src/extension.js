@@ -7,6 +7,8 @@ const { findPlatformPaths, loadPlatform } = require('./core/platformRef');
 const { proposalsFor, peripheralDoc } = require('./core/completion');
 const { lookup } = require('./core/commands');
 const { renderPlatformView } = require('./core/graph');
+const { buildIndex } = require('./core/peripheralIndex');
+const { replTargetAt, rescTargetAt, locatePeripheral, locateType } = require('./core/definitions');
 
 const KIND = {
   peripheral: vscode.CompletionItemKind.Variable,
@@ -17,6 +19,29 @@ const KIND = {
 
 /** Parsed platforms, keyed by .repl path, dropped when a file changes. */
 const cache = new Map();
+
+/** C# type index, built on first use because scanning a source tree is slow. */
+let sourceIndex;
+
+function sourceRoots() {
+  const configured = vscode.workspace.getConfiguration('renode').get('peripheralSourceRoots') || [];
+  const folders = (vscode.workspace.workspaceFolders || []).map((f) => f.uri.fsPath);
+  const resolved = [];
+  for (const entry of configured) {
+    if (!entry) continue;
+    if (path.isAbsolute(entry)) resolved.push(entry);
+    else for (const folder of folders) resolved.push(path.join(folder, entry));
+  }
+  return resolved.filter((p) => { try { return require('fs').statSync(p).isDirectory(); } catch { return false; } });
+}
+
+function getSourceIndex() {
+  if (sourceIndex) return sourceIndex;
+  const roots = sourceRoots();
+  if (!roots.length) return undefined;
+  sourceIndex = buildIndex(roots);
+  return sourceIndex;
+}
 
 function readPlatform(file) {
   const cached = cache.get(file);
@@ -54,7 +79,10 @@ function activate(context) {
   };
   context.subscriptions.push(
     vscode.workspace.onDidSaveTextDocument((d) => invalidate(d.uri)),
-    vscode.workspace.onDidChangeTextDocument((e) => invalidate(e.document.uri))
+    vscode.workspace.onDidChangeTextDocument((e) => invalidate(e.document.uri)),
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration('renode.peripheralSourceRoots')) sourceIndex = undefined;
+    })
   );
 
   context.subscriptions.push(
@@ -105,6 +133,55 @@ function activate(context) {
 
         return undefined;
       }
+    })
+  );
+
+  // Ctrl+click: a peripheral name opens its .repl declaration, a type opens the
+  // C# that implements it.
+  const definitionProvider = {
+    provideDefinition(document, position) {
+      const line = document.lineAt(position).text;
+      const target =
+        document.languageId === 'renode-repl'
+          ? replTargetAt(line, position.character)
+          : rescTargetAt(line, position.character);
+      if (!target) return undefined;
+
+      if (target.kind === 'peripheral') {
+        const { platform } = platformForDocument(document);
+        const found = locatePeripheral(platform, target.name);
+        if (!found) return undefined;
+        return new vscode.Location(vscode.Uri.file(found.file), new vscode.Position(found.line, 0));
+      }
+
+      const index = getSourceIndex();
+      if (!index) {
+        vscode.window.setStatusBarMessage(
+          'Renode: set "renode.peripheralSourceRoots" to your Renode sources to jump to peripheral implementations.',
+          6000
+        );
+        return undefined;
+      }
+      return locateType(index, target.type).map(
+        (c) => new vscode.Location(vscode.Uri.file(c.file), new vscode.Position(c.line, 0))
+      );
+    }
+  };
+
+  context.subscriptions.push(
+    vscode.languages.registerDefinitionProvider('renode-repl', definitionProvider),
+    vscode.languages.registerDefinitionProvider('renode-resc', definitionProvider)
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('renode.rebuildPeripheralIndex', () => {
+      sourceIndex = undefined;
+      const index = getSourceIndex();
+      vscode.window.showInformationMessage(
+        index
+          ? `Renode: indexed ${index.files} source files, ${index.byClass.size} types.`
+          : 'Renode: set "renode.peripheralSourceRoots" to a directory of Renode sources first.'
+      );
     })
   );
 
