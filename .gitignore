@@ -3,5 +3,6 @@ node_modules/
 *.zip
 .vscode-test/
 images/preview.html
+images/platform-view.html
 images/.theme-cache/
 dist/

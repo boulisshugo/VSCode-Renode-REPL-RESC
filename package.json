@@ -2,7 +2,7 @@
   "name": "renode-repl-resc",
   "displayName": "Renode .repl / .resc",
   "description": "Syntax highlighting, bracket matching and snippets for Renode platform descriptions (.repl) and Renode Monitor scripts (.resc).",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "publisher": "boulisshugo",
   "license": "MIT",
   "engines": {
@@ -28,6 +28,11 @@
   "bugs": {
     "url": "https://github.com/boulisshugo/VSCode-Renode-REPL-RESC/issues"
   },
+  "main": "./src/extension.js",
+  "activationEvents": [
+    "onLanguage:renode-resc",
+    "onLanguage:renode-repl"
+  ],
   "contributes": {
     "languages": [
       {
@@ -74,7 +79,23 @@
         "language": "renode-resc",
         "path": "./snippets/resc.json"
       }
-    ]
+    ],
+    "commands": [
+      {
+        "command": "renode.showPlatformView",
+        "title": "Renode: Show Peripheral Routing",
+        "category": "Renode"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "renode.showPlatformView",
+          "when": "resourceLangId == renode-repl || resourceLangId == renode-resc",
+          "group": "navigation"
+        }
+      ]
+    }
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",

@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.4.0
+
+The extension now has a runtime, so it can answer questions about the platform
+a script loads rather than only colouring text.
+
+* **Peripheral completion from the imported platform.** In a `.resc`, `sysbus.`
+  proposes the peripherals declared in the `.repl` that script loads. The
+  platform is located from `LoadPlatformDescription` in `@path`, quoted,
+  single-quoted and `$variable` forms, with `$ORIGIN` expanded, and `using`
+  imports inside the platform are followed (prefixes included) so a board file
+  that only composes other files still resolves.
+* **Command completion and hover.** Monitor commands and their descriptions are
+  extracted from Renode's own sources by `tools/extract-monitor-commands.mjs`
+  into `data/monitor-commands.json`. Methods on `sysbus`, `machine`,
+  `emulation`, `connector` and `cpu` are curated in `data/object-methods.json`
+  with signatures.
+* **Peripheral routing view.** `Renode: Show Peripheral Routing` opens a webview
+  laying the platform out along its interrupt path, with tables for the
+  interrupt lines and the memory map. Destinations the platform never declares
+  are flagged.
+* Windows-style absolute paths (`S:/work/board.repl`) are recognised as
+  absolute on every host, so a script authored on Windows resolves its platform
+  when the editor runs elsewhere.
+
 ## 0.3.0
 
 * **JetBrains IDE support.** `npm run bundle` builds a TextMate bundle that

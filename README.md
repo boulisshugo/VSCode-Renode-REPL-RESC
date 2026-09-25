@@ -114,6 +114,58 @@ Type the prefix and press <kbd>Tab</kbd>.
 `.resc`: `resc` (full script skeleton), `mach`, `loadelf`, `loadbin`, `macro`,
 `uartsocket`, `uartpty`, `analyzer`, `gdb`, `loglevel`, `include`
 
+## Editor features
+
+Beyond highlighting, the extension reads the platform your script loads and
+uses it to answer questions about the file in front of you.
+
+### Peripheral names completed from your own platform
+
+![Peripheral routing view](images/platform-view.png)
+
+In a `.resc`, typing `sysbus.` proposes the peripherals declared in the `.repl`
+that same script loads — not a generic list. The platform is found from the
+script's own `LoadPlatformDescription` line, in any form Renode accepts:
+
+```resc
+machine LoadPlatformDescription @platforms/boards/board.repl
+machine LoadPlatformDescription "S:/work/target/board.repl"
+$repl ?= @$ORIGIN/board.repl
+machine LoadPlatformDescription $repl
+```
+
+`using` imports inside the `.repl` are followed, so a board file that only
+composes other platform files still yields the full peripheral list, prefixed
+names included. Each proposal carries the peripheral's type, where it is
+registered, and how its IRQ is wired.
+
+### Commands explained on hover
+
+Hovering a Monitor command in a `.resc` shows what it does. The descriptions
+for Monitor commands are extracted from Renode's own sources by
+`tools/extract-monitor-commands.mjs`, so they are the text Renode itself
+prints. Methods on `sysbus`, `machine`, `emulation`, `connector` and `cpu`
+carry a signature and a curated description — those have no description in the
+sources, so `data/object-methods.json` supplies one.
+
+Completion follows the same data: Monitor commands at the start of a line, and
+a receiver's methods after `sysbus `, `machine `, `emulation ` and so on.
+
+### Peripheral routing view
+
+**Renode: Show Peripheral Routing** (Command Palette, or the editor title bar)
+opens the platform as a diagram. Columns follow the interrupt path — a
+peripheral sits to the right of everything that signals it, so sources are on
+the left and the CPU ends up on the right. Alongside it are two tables: the
+interrupt lines sorted by target and line number, which is what you consult to
+answer "what is on IRQ 5?", and the memory map sorted by address.
+
+A destination that the platform never declares is drawn dashed, which catches
+a typo in an IRQ target or a platform file the editor could not resolve.
+
+It works on a `.repl` directly, or on a `.resc` by way of the platform it
+loads.
+
 ## JetBrains IDEs (Rider, IntelliJ, CLion)
 
 JetBrains IDEs read VS Code-style TextMate bundles through the bundled
